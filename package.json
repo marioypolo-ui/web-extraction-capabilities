@@ -53,6 +53,7 @@
     "validate": "node bin/web-extract.mjs validate",
     "bundle": "node bin/web-extract.mjs bundle --output dist/bundle",
     "audit:sensitive": "node scripts/check-sensitive.mjs",
+    "audit:history": "node scripts/check-sensitive.mjs --history",
     "docs:smoke": "node scripts/docs-smoke.mjs"
   },
   "license": "Apache-2.0"

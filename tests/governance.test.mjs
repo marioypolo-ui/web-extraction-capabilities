@@ -24,6 +24,8 @@ test('CI enforces tests, docs smoke, catalog validation, and sensitive-content a
   assert.match(workflow, /npm run validate/);
   assert.match(workflow, /npm run docs:smoke/);
   assert.match(workflow, /npm run audit:sensitive/);
+  assert.match(workflow, /npm run audit:history/);
+  assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /push:/);
 });
