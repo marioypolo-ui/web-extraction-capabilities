@@ -1,0 +1,20 @@
+{
+  "id": "tender-platform-families",
+  "version": "0.1.0",
+  "type": "migrated-platform-adapters",
+  "scope": "platform-family",
+  "status": "supported",
+  "detection": ["Known public platform endpoint or tested list markup family"],
+  "appliesTo": ["researchApp", "Public procurement portals", "Known CMS list families"],
+  "notAppliesTo": ["Unlisted domains assumed to share a platform without verification"],
+  "requirements": { "http": true, "api": true, "browser": false, "login": false, "human": false },
+  "implementation": "src/migrated/html.mjs",
+  "fixtures": [
+    "fixtures/list.html",
+    "fixtures/gxufe-level.html",
+    "fixtures/gxmuyfy-announcement-list.html",
+    "fixtures/ccgp-guangxi-category.html",
+    "fixtures/gxmzu-purchase.html"
+  ],
+  "tests": ["tests/migrated-platforms.test.mjs", "tests/extract.test.mjs"]
+}

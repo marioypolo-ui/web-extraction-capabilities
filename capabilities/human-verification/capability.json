@@ -1,0 +1,14 @@
+{
+  "id": "human-verification",
+  "version": "0.1.0",
+  "type": "human-handoff",
+  "scope": "generic",
+  "status": "human-required",
+  "detection": ["CAPTCHA, slider, or human verification text is present"],
+  "appliesTo": ["Authorized workflows that can pause for a human"],
+  "notAppliesTo": ["Automated challenge bypass"],
+  "requirements": { "http": false, "api": false, "browser": true, "login": false, "human": true },
+  "implementation": "src/detect.mjs#containsHumanChallenge",
+  "fixtures": ["fixtures/challenge.html"],
+  "tests": ["tests/detect.test.mjs"]
+}

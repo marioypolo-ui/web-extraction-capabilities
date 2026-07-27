@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run validate
+      - run: npm run docs:smoke
+      - run: npm run audit:sensitive
+      - name: Verify reproducible bundles
+        shell: bash
+        run: |
+          node bin/web-extract.mjs bundle --output "$RUNNER_TEMP/bundle-one" > "$RUNNER_TEMP/one.json"
+          node bin/web-extract.mjs bundle --output "$RUNNER_TEMP/bundle-two" > "$RUNNER_TEMP/two.json"
+          test "$(node -p "require('$RUNNER_TEMP/one.json').bundleSha256")" = "$(node -p "require('$RUNNER_TEMP/two.json').bundleSha256")"

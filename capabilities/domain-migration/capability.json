@@ -1,0 +1,14 @@
+{
+  "id": "domain-migration",
+  "version": "0.1.0",
+  "type": "http-domain-rewrite",
+  "scope": "generic",
+  "status": "supported",
+  "detection": ["A configured legacy hostname has a verified current hostname"],
+  "appliesTo": ["Explicit application-provided hostname rewrite maps"],
+  "notAppliesTo": ["Unverified redirects or open proxy behavior"],
+  "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "implementation": "src/http.mjs#fetchResource",
+  "fixtures": ["fixtures/static-list.html"],
+  "tests": ["tests/http.test.mjs"]
+}

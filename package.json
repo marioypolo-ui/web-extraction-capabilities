@@ -1,0 +1,59 @@
+{
+  "name": "@marioypolo/web-extraction-capabilities",
+  "version": "0.1.0",
+  "description": "Reusable, diagnosable web extraction capabilities for independent applications.",
+  "keywords": [
+    "web-extraction",
+    "scraping",
+    "diagnostics",
+    "playwright",
+    "vendoring"
+  ],
+  "author": "Mario Y. Polo",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "web-extract": "bin/web-extract.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marioypolo-ui/web-extraction-capabilities.git"
+  },
+  "homepage": "https://github.com/marioypolo-ui/web-extraction-capabilities#readme",
+  "bugs": {
+    "url": "https://github.com/marioypolo-ui/web-extraction-capabilities/issues"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.50.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  },
+  "files": [
+    "bin",
+    "capabilities",
+    "docs",
+    "schemas",
+    "src",
+    "LICENSE",
+    "README.md",
+    "README.en.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "validate": "node bin/web-extract.mjs validate",
+    "bundle": "node bin/web-extract.mjs bundle --output dist/bundle",
+    "audit:sensitive": "node scripts/check-sensitive.mjs",
+    "docs:smoke": "node scripts/docs-smoke.mjs"
+  },
+  "license": "Apache-2.0"
+}

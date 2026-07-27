@@ -1,0 +1,14 @@
+{
+  "id": "example-card-list",
+  "version": "0.1.0",
+  "type": "static-html",
+  "scope": "generic",
+  "status": "supported",
+  "detection": ["Synthetic cards contain data-record attributes"],
+  "appliesTo": ["Card lists with ordinary anchor links"],
+  "notAppliesTo": ["Dynamic shells without rendered cards"],
+  "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "implementation": "adapter.mjs",
+  "fixtures": ["fixture.html"],
+  "tests": ["adapter.test.mjs"]
+}

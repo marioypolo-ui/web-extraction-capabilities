@@ -1,0 +1,33 @@
+name: Release candidate
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node bin/web-extract.mjs bundle --output dist/web-extraction-capabilities
+      - name: Package candidate
+        shell: bash
+        run: |
+          tar -czf "dist/web-extraction-capabilities-${GITHUB_SHA}.tgz" -C dist web-extraction-capabilities
+          sha256sum "dist/web-extraction-capabilities-${GITHUB_SHA}.tgz" > "dist/web-extraction-capabilities-${GITHUB_SHA}.tgz.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-${{ github.sha }}
+          path: |
+            dist/*.tgz
+            dist/*.sha256
+          if-no-files-found: error

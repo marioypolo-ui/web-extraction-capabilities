@@ -1,0 +1,14 @@
+{
+  "id": "spa-api",
+  "version": "0.1.0",
+  "type": "spa-api",
+  "scope": "generic",
+  "status": "conditional",
+  "detection": ["Application shell has no records and loads JavaScript bundles"],
+  "appliesTo": ["SPAs with a known JSON endpoint and field mapping"],
+  "notAppliesTo": ["SPAs whose data exists only after interactive browser execution"],
+  "requirements": { "http": true, "api": true, "browser": false, "login": false, "human": false },
+  "implementation": "src/extract.mjs#extract",
+  "fixtures": ["fixtures/spa-shell.html", "fixtures/json-api.json"],
+  "tests": ["tests/detect.test.mjs", "tests/extract.test.mjs"]
+}

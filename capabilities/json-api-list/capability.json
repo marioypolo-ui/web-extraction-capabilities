@@ -1,0 +1,14 @@
+{
+  "id": "json-api-list",
+  "version": "0.1.0",
+  "type": "json-api",
+  "scope": "generic",
+  "status": "supported",
+  "detection": ["Documented JSON endpoint with a list array"],
+  "appliesTo": ["GET or pre-fetched JSON list responses"],
+  "notAppliesTo": ["Undocumented encrypted payloads"],
+  "requirements": { "http": true, "api": true, "browser": false, "login": false, "human": false },
+  "implementation": "src/json-api.mjs#extractJsonApi",
+  "fixtures": ["fixtures/json-api.json"],
+  "tests": ["tests/extract.test.mjs"]
+}

@@ -1,0 +1,47 @@
+name: Stable release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Verify tag matches package version
+        shell: bash
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Refuse to replace an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: if gh release view "$GITHUB_REF_NAME"; then exit 1; else exit 0; fi
+      - run: node bin/web-extract.mjs bundle --output dist/web-extraction-capabilities
+      - name: Package release
+        shell: bash
+        run: |
+          tar -czf "dist/web-extraction-capabilities-${GITHUB_REF_NAME}.tgz" -C dist web-extraction-capabilities
+          sha256sum "dist/web-extraction-capabilities-${GITHUB_REF_NAME}.tgz" > "dist/web-extraction-capabilities-${GITHUB_REF_NAME}.tgz.sha256"
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          "dist/web-extraction-capabilities-${GITHUB_REF_NAME}.tgz"
+          "dist/web-extraction-capabilities-${GITHUB_REF_NAME}.tgz.sha256"
+          --verify-tag
+          --generate-notes

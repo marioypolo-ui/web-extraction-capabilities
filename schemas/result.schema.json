@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marioypolo-ui/web-extraction-capabilities/schemas/result.schema.json",
+  "type": "object",
+  "required": ["records", "diagnostics", "capabilityId", "capabilityVersion"],
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "url", "publishedAt", "summary", "raw"]
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"]
+      }
+    },
+    "capabilityId": { "type": "string" },
+    "capabilityVersion": { "type": "string" }
+  },
+  "additionalProperties": false
+}

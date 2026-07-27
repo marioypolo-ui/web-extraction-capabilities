@@ -1,0 +1,14 @@
+{
+  "id": "fixed-dns-host",
+  "version": "0.1.0",
+  "type": "http-fixed-resolution",
+  "scope": "generic",
+  "status": "supported",
+  "detection": ["DNS resolution fails while an authorized destination IP is known"],
+  "appliesTo": ["HTTP and HTTPS requests that must preserve the original Host and SNI"],
+  "notAppliesTo": ["Unknown or untrusted destination IPs"],
+  "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "implementation": "src/http.mjs#fetchResource",
+  "fixtures": ["fixtures/static-list.html"],
+  "tests": ["tests/http.test.mjs"]
+}

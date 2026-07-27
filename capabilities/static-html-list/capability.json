@@ -1,0 +1,14 @@
+{
+  "id": "static-html-list",
+  "version": "0.1.0",
+  "type": "static-html",
+  "scope": "generic",
+  "status": "supported",
+  "detection": ["List or article elements contain ordinary anchor links"],
+  "appliesTo": ["Server-rendered announcement, news, and document lists"],
+  "notAppliesTo": ["Empty SPA shells", "Pages gated by human verification"],
+  "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "implementation": "src/static-html.mjs#extractStaticHtml",
+  "fixtures": ["fixtures/static-list.html"],
+  "tests": ["tests/extract.test.mjs"]
+}

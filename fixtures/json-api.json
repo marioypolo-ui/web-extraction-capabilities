@@ -1,0 +1,12 @@
+{
+  "data": {
+    "items": [
+      {
+        "name": "API supplied notice",
+        "link": "/notices/api-1",
+        "date": "2026-07-21",
+        "description": "Returned by a documented JSON endpoint."
+      }
+    ]
+  }
+}

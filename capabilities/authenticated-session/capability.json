@@ -1,0 +1,14 @@
+{
+  "id": "authenticated-session",
+  "version": "0.1.0",
+  "type": "browser-session",
+  "scope": "generic",
+  "status": "conditional",
+  "detection": ["A login page or access-controlled content is detected"],
+  "appliesTo": ["Authorized application-owned storage state or CDP sessions"],
+  "notAppliesTo": ["Credentials stored in this library", "Unauthorized access"],
+  "requirements": { "http": false, "api": false, "browser": true, "login": true, "human": false },
+  "implementation": "src/browser.mjs#extractWithBrowser",
+  "fixtures": ["fixtures/spa-shell.html"],
+  "tests": ["tests/browser.test.mjs"]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "browser-click",
+  "version": "0.1.0",
+  "type": "browser-workflow",
+  "scope": "generic",
+  "status": "conditional",
+  "detection": ["A public list requires deterministic tab, menu, or button clicks"],
+  "appliesTo": ["Playwright pages with text or selector click steps"],
+  "notAppliesTo": ["CAPTCHA solving", "Destructive form submission"],
+  "requirements": { "http": false, "api": false, "browser": true, "login": false, "human": false },
+  "implementation": "src/browser.mjs#extractWithBrowser",
+  "fixtures": ["fixtures/spa-shell.html"],
+  "tests": ["tests/browser.test.mjs"]
+}

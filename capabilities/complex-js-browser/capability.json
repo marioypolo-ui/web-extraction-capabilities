@@ -1,0 +1,14 @@
+{
+  "id": "complex-js-browser",
+  "version": "0.1.0",
+  "type": "browser-rendering",
+  "scope": "generic",
+  "status": "conditional",
+  "detection": ["Records appear only after JavaScript rendering"],
+  "appliesTo": ["Browser-rendered pages supported by Playwright"],
+  "notAppliesTo": ["CAPTCHA bypass", "Unauthorized sessions"],
+  "requirements": { "http": false, "api": false, "browser": true, "login": false, "human": false },
+  "implementation": "src/browser.mjs#extractWithBrowser",
+  "fixtures": ["fixtures/spa-shell.html"],
+  "tests": ["tests/browser.test.mjs"]
+}

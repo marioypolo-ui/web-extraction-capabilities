@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marioypolo-ui/web-extraction-capabilities/schemas/capability.schema.json",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "type",
+    "scope",
+    "status",
+    "detection",
+    "appliesTo",
+    "notAppliesTo",
+    "requirements",
+    "implementation",
+    "fixtures",
+    "tests"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "version": { "type": "string" },
+    "type": { "type": "string" },
+    "scope": { "enum": ["generic", "platform-family", "site-specific"] },
+    "status": { "enum": ["supported", "conditional", "human-required", "unsupported"] },
+    "detection": { "type": "array", "items": { "type": "string" } },
+    "appliesTo": { "type": "array", "items": { "type": "string" } },
+    "notAppliesTo": { "type": "array", "items": { "type": "string" } },
+    "requirements": { "type": "object" },
+    "implementation": { "type": "string" },
+    "fixtures": { "type": "array", "items": { "type": "string" } },
+    "tests": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

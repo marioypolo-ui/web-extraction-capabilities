@@ -1,0 +1,14 @@
+{
+  "id": "action-link-resolution",
+  "version": "0.1.0",
+  "type": "action-link",
+  "scope": "generic",
+  "status": "conditional",
+  "detection": ["javascript:, onclick, or data-id links are present"],
+  "appliesTo": ["Links with an explicit actionUrlTemplate or browser workflow"],
+  "notAppliesTo": ["Opaque actions without a documented mapping"],
+  "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "implementation": "src/static-html.mjs#extractStaticHtml",
+  "fixtures": ["fixtures/action-links.html"],
+  "tests": ["tests/extract.test.mjs"]
+}
