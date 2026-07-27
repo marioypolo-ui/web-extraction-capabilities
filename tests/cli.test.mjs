@@ -72,7 +72,7 @@ test('bundle CLI creates a versioned snapshot manifest', () => {
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).version, '0.1.0');
+  assert.equal(JSON.parse(result.stdout).version, '0.1.1');
   assert.equal(fs.existsSync(path.join(output, 'bundle-manifest.json')), true);
 });
 

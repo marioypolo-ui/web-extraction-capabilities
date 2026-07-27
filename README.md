@@ -2,7 +2,7 @@
 
 一个面向独立应用的网页信息获取中央能力库。它把网站类型、识别特征、获取实现、失败诊断、fixture 和测试放在同一版本中。应用负责业务筛选、存储和通知，库只负责把网页转换为统一记录。
 
-[English](README.en.md) | [集成指南](docs/integration.md) | [能力开发](docs/capability-authoring.md) | [诊断码](docs/diagnostics.md)
+[English](README.en.md) | [集成指南](docs/integration.md) | [能力开发](docs/capability-authoring.md) | [诊断码](docs/diagnostics.md) | [升级与回滚](docs/upgrades.md)
 
 ## 设计边界
 
@@ -68,13 +68,13 @@ const result = await extract({
   ],
   "diagnostics": [],
   "capabilityId": "static-html-list",
-  "capabilityVersion": "0.1.0"
+  "capabilityVersion": "0.1.1"
 }
 ```
 
 ## 当前能力
 
-`catalog` 提供机器可读清单。v0.1.0 包括静态 HTML、JSON API、SPA API、复杂 JS 浏览器、点击流程、登录会话、人工验证检测、固定 DNS/Host、域名迁移、动作链接解析，以及从真实生产场景迁移的平台家族适配器。
+`catalog` 提供机器可读清单。v0.1.x 包括静态 HTML、JSON API、SPA API、复杂 JS 浏览器、点击流程、登录会话、人工验证检测、固定 DNS/Host、域名迁移、动作链接解析，以及从真实生产场景迁移的平台家族适配器。
 
 浏览器类能力状态为 `conditional`：安装 Playwright 后可执行；未安装时返回 `CAPABILITY_DEPENDENCY_MISSING`。验证码类能力状态为 `human-required`。
 
@@ -86,6 +86,18 @@ node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtu
 ```
 
 应用提交 bundle 中的 `src/`、`capabilities/`、`schemas/`、`package.json` 和 `bundle-manifest.json`，记录版本和总 SHA256。升级前在临时目录验证，影子比较新旧结果，成功后原子切换；失败则继续使用旧目录。详见[升级与回滚](docs/upgrades.md)。
+
+## 更新方式选择
+
+中央库通过 GitHub Releases 发布稳定版本、bundle 和 SHA256，因此应用可以检查是否有新版本，但中央库不会强制应用安装自动更新器。
+
+接入本库时，开发者或执行 Agent 应主动告诉用户存在版本检查能力，并询问选择：
+
+1. **自动检查**：由应用按用户确认的周期检查稳定 Release；是否自动切换版本需要另行确认。
+2. **手动检查**：应用保留检查和升级入口，不创建定时任务。
+3. **暂不检查**：应用固定使用当前 bundle，直到用户以后主动要求升级。
+
+用户没有明确选择前，不得创建定时任务、自动下载或自动切换版本。具体安全流程见[升级与回滚](docs/upgrades.md)。
 
 ## 贡献新能力
 

@@ -14,7 +14,7 @@ test('static HTML extraction returns normalized records', async () => {
   });
 
   assert.equal(result.capabilityId, 'static-html-list');
-  assert.equal(result.capabilityVersion, '0.1.0');
+  assert.equal(result.capabilityVersion, '0.1.1');
   assert.equal(result.records.length, 2);
   assert.deepEqual(result.records[0], {
     title: 'Alpha procurement notice',

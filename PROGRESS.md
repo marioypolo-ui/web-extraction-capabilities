@@ -7,5 +7,6 @@
 - Guardrail: failures, empty extraction, missing dependencies, authentication, and human verification emit structured diagnostics.
 - Current verification: 65 tests passed; 11 catalog entries and 7 documentation commands passed.
 - Public repository: https://github.com/marioypolo-ui/web-extraction-capabilities
-- Release target: immutable `v0.1.0` tag with bundle and SHA256 assets.
-- Remaining: final audit, release commit, tag, and GitHub Release verification.
+- Latest stable implementation baseline: immutable `v0.1.0` tag with bundle and SHA256 assets.
+- `v0.1.1` adds the documented choice between automatic, manual, and disabled update checks.
+- Release status: `v0.1.1` is ready for final audit, tag, and GitHub Release verification.

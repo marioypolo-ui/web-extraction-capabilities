@@ -53,7 +53,7 @@ export async function buildBundle({ outputDir }) {
   const bundleSha256 = sha256(JSON.stringify(files));
   const manifest = {
     name: '@marioypolo/web-extraction-capabilities',
-    version: '0.1.0',
+    version: '0.1.1',
     bundleSha256,
     files
   };
