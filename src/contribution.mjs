@@ -2,7 +2,10 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { validateCapabilityManifest } from './capability-contract.mjs';
+import {
+  validateCapabilityManifest,
+  validateVerifiedTarget
+} from './capability-contract.mjs';
 
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const FORBIDDEN_SEGMENTS = new Set([
@@ -43,21 +46,61 @@ function validateManifest(manifest) {
   }
 }
 
+async function readContributionDefinition(sourceDir) {
+  try {
+    const manifest = JSON.parse(
+      await fs.readFile(path.join(sourceDir, 'capability.json'), 'utf8')
+    );
+    validateManifest(manifest);
+    return {
+      kind: 'capability',
+      capabilityId: manifest.id,
+      capabilityVersion: manifest.version,
+      requiredPaths: [
+        manifest.implementation,
+        ...(manifest.fixtures || []),
+        ...(manifest.tests || []),
+        ...(manifest.verifiedTargets || []).flatMap((target) => target.evidence || [])
+      ]
+    };
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  const reference = JSON.parse(
+    await fs.readFile(path.join(sourceDir, 'reference.json'), 'utf8')
+  );
+  const errors = [];
+  if (!/^[a-z0-9-]+$/.test(reference.capabilityId || '')) {
+    errors.push('capabilityId must use lowercase letters, digits, and hyphens');
+  }
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(reference.baseCapabilityVersion || '')) {
+    errors.push('baseCapabilityVersion must be semantic version text');
+  }
+  errors.push(...validateVerifiedTarget(reference.target, 'target'));
+  if (errors.length) {
+    throw new Error(errors.join('; '));
+  }
+  return {
+    kind: 'website-reference',
+    capabilityId: reference.capabilityId,
+    capabilityVersion: reference.baseCapabilityVersion,
+    requiredPaths: reference.target.evidence || []
+  };
+}
+
 export async function packContribution({ sourceDir, outputDir }) {
   if (!sourceDir || !outputDir) {
     throw new Error('sourceDir and outputDir are required');
   }
-  const manifestPath = path.join(sourceDir, 'capability.json');
-  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
-  validateManifest(manifest);
+  const definition = await readContributionDefinition(sourceDir);
   const files = await listFiles(sourceDir);
   const relativePaths = new Set(files.map((item) => item.relative));
-  for (const requiredPath of [
-    manifest.implementation,
-    ...(manifest.fixtures || []),
-    ...(manifest.tests || [])
-  ]) {
-    if (!relativePaths.has(requiredPath)) {
+  for (const requiredPath of definition.requiredPaths) {
+    const normalizedPath = String(requiredPath).split('#')[0];
+    if (!relativePaths.has(normalizedPath)) {
       throw new Error(`manifest references missing contribution file: ${requiredPath}`);
     }
   }
@@ -74,8 +117,9 @@ export async function packContribution({ sourceDir, outputDir }) {
   }
   packedFiles.sort((left, right) => left.path.localeCompare(right.path));
   const result = {
-    capabilityId: manifest.id,
-    capabilityVersion: manifest.version,
+    contributionKind: definition.kind,
+    capabilityId: definition.capabilityId,
+    capabilityVersion: definition.capabilityVersion,
     files: packedFiles,
     packSha256: sha256(JSON.stringify(packedFiles))
   };

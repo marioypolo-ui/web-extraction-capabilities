@@ -1,6 +1,6 @@
 {
   "id": "domain-migration",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "http-domain-rewrite",
   "scope": "generic",
   "status": "supported",
@@ -8,6 +8,19 @@
   "appliesTo": ["Explicit application-provided hostname rewrite maps"],
   "notAppliesTo": ["Unverified redirects or open proxy behavior"],
   "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "verifiedTargets": [
+    {
+      "name": "广西壮族自治区民族医院（旧域名迁移）",
+      "referenceUrl": "https://gxmzyy.gxrb.com.cn/ywgk/zbxx/index.html",
+      "match": {
+        "host": "gxmzyy.gxrb.com.cn",
+        "pathPrefix": "/ywgk/zbxx/"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["tests/migrated-platforms.test.mjs"]
+    }
+  ],
   "implementation": "src/http.mjs#fetchResource",
   "fixtures": ["fixtures/static-list.html"],
   "tests": ["tests/http.test.mjs"]

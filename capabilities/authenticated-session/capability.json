@@ -8,6 +8,7 @@
   "appliesTo": ["Authorized application-owned storage state or CDP sessions"],
   "notAppliesTo": ["Credentials stored in this library", "Unauthorized access"],
   "requirements": { "http": false, "api": false, "browser": true, "login": true, "human": false },
+  "verifiedTargets": [],
   "implementation": "src/browser.mjs#extractWithBrowser",
   "fixtures": ["fixtures/spa-shell.html"],
   "tests": ["tests/browser.test.mjs"]

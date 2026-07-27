@@ -8,6 +8,7 @@
   "appliesTo": ["GET or pre-fetched JSON list responses"],
   "notAppliesTo": ["Undocumented encrypted payloads"],
   "requirements": { "http": true, "api": true, "browser": false, "login": false, "human": false },
+  "verifiedTargets": [],
   "implementation": "src/json-api.mjs#extractJsonApi",
   "fixtures": ["fixtures/json-api.json"],
   "tests": ["tests/extract.test.mjs"]

@@ -14,7 +14,7 @@ test('static HTML extraction returns normalized records', async () => {
   });
 
   assert.equal(result.capabilityId, 'static-html-list');
-  assert.equal(result.capabilityVersion, '0.1.1');
+  assert.equal(result.capabilityVersion, '0.1.2');
   assert.equal(result.records.length, 2);
   assert.deepEqual(result.records[0], {
     title: 'Alpha procurement notice',
@@ -90,4 +90,26 @@ test('migrated platform families are available through the unified result contra
   assert.equal(result.records.length, 3);
   assert.equal(result.records[0].publishedAt, '2026-05-14');
   assert.deepEqual(result.diagnostics, []);
+});
+
+test('auto extraction prefers a reusable verified website capability', async () => {
+  const result = await extract({
+    capabilityId: 'auto',
+    url: 'https://www.gxufe.edu.cn/www/myweb/level.html?typeid=www010e&typeid0=www01',
+    html: await fixture('list.html')
+  });
+
+  assert.equal(result.capabilityId, 'tender-platform-families');
+  assert.equal(result.records.length, 3);
+});
+
+test('reported website references do not silently control auto routing', async () => {
+  const result = await extract({
+    capabilityId: 'auto',
+    url: 'https://www.gxzyy.com.cn/public_cggg/',
+    html: await fixture('static-list.html')
+  });
+
+  assert.equal(result.capabilityId, 'static-html-list');
+  assert.equal(result.records.length, 2);
 });

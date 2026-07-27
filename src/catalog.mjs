@@ -25,6 +25,47 @@ export async function getCatalog() {
   return manifests.sort((left, right) => left.id.localeCompare(right.id));
 }
 
+function targetMatchesUrl(target, parsedUrl) {
+  if (target.match.host.toLowerCase() !== parsedUrl.hostname.toLowerCase()) {
+    return false;
+  }
+  if (
+    target.match.pathPrefix &&
+    !parsedUrl.pathname.toLowerCase().startsWith(target.match.pathPrefix.toLowerCase())
+  ) {
+    return false;
+  }
+  if (target.match.hashPrefix && !parsedUrl.hash.startsWith(target.match.hashPrefix)) {
+    return false;
+  }
+  return true;
+}
+
+export async function findCapabilitiesForUrl(rawUrl) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch {
+    return [];
+  }
+
+  const catalog = await getCatalog();
+  return catalog
+    .flatMap((capability) =>
+      capability.verifiedTargets
+        .filter((target) => targetMatchesUrl(target, parsedUrl))
+        .map((target) => ({
+          capabilityId: capability.id,
+          capabilityVersion: capability.version,
+          status: capability.status,
+          scope: capability.scope,
+          reusable: target.verification !== 'reported',
+          target
+        }))
+    )
+    .sort((left, right) => Number(right.reusable) - Number(left.reusable));
+}
+
 export async function validateCatalog(capabilityId) {
   const errors = [];
   const completeCatalog = await getCatalog();
@@ -53,6 +94,17 @@ export async function validateCatalog(capabilityId) {
         await fs.access(path.join(ROOT, relativePath));
       } catch {
         errors.push(`${capability.id} references missing file: ${relativePath}`);
+      }
+    }
+    for (const target of capability.verifiedTargets || []) {
+      for (const relativePath of target.evidence || []) {
+        try {
+          await fs.access(path.join(ROOT, relativePath));
+        } catch {
+          errors.push(
+            `${capability.id} verified target ${target.name || '<unknown>'} references missing evidence: ${relativePath}`
+          );
+        }
       }
     }
 

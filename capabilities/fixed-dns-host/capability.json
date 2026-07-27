@@ -1,6 +1,6 @@
 {
   "id": "fixed-dns-host",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "http-fixed-resolution",
   "scope": "generic",
   "status": "supported",
@@ -8,6 +8,20 @@
   "appliesTo": ["HTTP and HTTPS requests that must preserve the original Host and SNI"],
   "notAppliesTo": ["Unknown or untrusted destination IPs"],
   "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "verifiedTargets": [
+    {
+      "name": "广西科技大学",
+      "referenceUrl": "https://www.gxust.edu.cn/xwzx/zbgs.htm",
+      "match": {
+        "host": "www.gxust.edu.cn",
+        "pathPrefix": "/xwzx/zbgs"
+      },
+      "verification": "live-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["tests/http.test.mjs"],
+      "notes": "The consuming application supplies the verified resolveIp value."
+    }
+  ],
   "implementation": "src/http.mjs#fetchResource",
   "fixtures": ["fixtures/static-list.html"],
   "tests": ["tests/http.test.mjs"]

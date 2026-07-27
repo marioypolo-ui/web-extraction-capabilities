@@ -1,6 +1,6 @@
 {
   "name": "@marioypolo/web-extraction-capabilities",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Reusable, diagnosable web extraction capabilities for independent applications.",
   "keywords": [
     "web-extraction",
@@ -41,8 +41,10 @@
     "bin",
     "capabilities",
     "docs",
+    "examples",
     "schemas",
     "src",
+    "CONTRIBUTING.md",
     "LICENSE",
     "README.md",
     "README.en.md",

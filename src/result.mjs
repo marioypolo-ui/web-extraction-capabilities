@@ -1,4 +1,4 @@
-export const LIBRARY_VERSION = '0.1.1';
+export const LIBRARY_VERSION = '0.1.2';
 
 export function diagnostic(code, message, options = {}) {
   return {

@@ -36,6 +36,7 @@ node bin/web-extract.mjs detect --url "https://example.test/notices" --html-file
 node bin/web-extract.mjs extract --capability static-html-list --url "https://example.test/notices/" --html-file fixtures/static-list.html
 node bin/web-extract.mjs bundle --output dist/bundle
 node bin/web-extract.mjs contribution:pack --source examples/capability-contribution --output dist/contribution
+node bin/web-extract.mjs contribution:pack --source examples/website-reference-contribution --output dist/reference
 ```
 
 这些命令由 `npm run docs:smoke` 自动执行。完整参数见[集成指南](docs/integration.md)。
@@ -68,7 +69,7 @@ const result = await extract({
   ],
   "diagnostics": [],
   "capabilityId": "static-html-list",
-  "capabilityVersion": "0.1.1"
+  "capabilityVersion": "0.1.2"
 }
 ```
 
@@ -77,6 +78,14 @@ const result = await extract({
 `catalog` 提供机器可读清单。v0.1.x 包括静态 HTML、JSON API、SPA API、复杂 JS 浏览器、点击流程、登录会话、人工验证检测、固定 DNS/Host、域名迁移、动作链接解析，以及从真实生产场景迁移的平台家族适配器。
 
 浏览器类能力状态为 `conditional`：安装 Playwright 后可执行；未安装时返回 `CAPABILITY_DEPENDENCY_MISSING`。验证码类能力状态为 `human-required`。
+
+查询某个网站是否已有可复用能力：
+
+```powershell
+node bin/web-extract.mjs catalog --url "https://www.gxufe.edu.cn/www/myweb/level.html"
+```
+
+`reusable: true` 表示已有 fixture 或真实运行证据，可直接进入应用自己的验证流程；`reported` 参考只用于提示风险，不会控制自动路由。`extract --capability auto` 会优先使用匹配的可复用网站参考，再用页面结构检测兜底。
 
 ## 独立应用使用
 
@@ -99,12 +108,29 @@ node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtu
 
 用户没有明确选择前，不得创建定时任务、自动下载或自动切换版本。具体安全流程见[升级与回滚](docs/upgrades.md)。
 
+## 网站参考与能力回流
+
+应用遇到中央库未覆盖的新网站类型时，应先在应用内实现并用脱敏 fixture、正常路径和失败路径测试验证。验证成功后：
+
+1. 能复用现有能力时，在该能力的 `verifiedTargets` 中反馈公开网站名称、URL 匹配规则、验证日期和证据。
+2. 需要新解析方法时，新增 `generic`、`platform-family` 或明确的 `site-specific` 能力，并同时登记网站参考。
+3. 使用 `contribution:pack` 生成贡献包并提交中央库。
+4. 中央库发布新版本后，应用检查 `bundleFormatVersion`，再比较 Bundle 的 `catalogSha256` 和能力目录，重新为已配置网站执行 URL 匹配和影子验证，再采用新能力。
+
+这样新应用可以先查已验证网站，已接入升级协议的应用也能在定期检查 Release 后发现新增能力。尚未接入升级协议的旧应用需要一次性改造；无法靠中央库反向修改。账号、Cookie、内部地址、私有页面和业务规则不得进入网站参考。详见[能力开发](docs/capability-authoring.md)。
+
 ## 贡献新能力
 
 复制 `examples/capability-contribution`，提供能力清单、实现、脱敏 fixture 和测试，然后执行：
 
 ```powershell
 node bin/web-extract.mjs contribution:pack --source examples/capability-contribution --output dist/contribution
+```
+
+如果现有能力已经适用，只需复制 `examples/website-reference-contribution`，填写公开网站参考和验证证据：
+
+```powershell
+node bin/web-extract.mjs contribution:pack --source examples/website-reference-contribution --output dist/reference
 ```
 
 中央 CI 自动检查 schema、测试、文档命令、敏感信息和 bundle 可复现性。自动合并仅对可信作者和受限路径开放；核心运行时、CI、依赖、权限和许可证始终需要人工审核。详见[贡献指南](CONTRIBUTING.md)。

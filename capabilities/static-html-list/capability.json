@@ -1,6 +1,6 @@
 {
   "id": "static-html-list",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "static-html",
   "scope": "generic",
   "status": "supported",
@@ -8,6 +8,41 @@
   "appliesTo": ["Server-rendered announcement, news, and document lists"],
   "notAppliesTo": ["Empty SPA shells", "Pages gated by human verification"],
   "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "verifiedTargets": [
+    {
+      "name": "广西壮族自治区卫生健康委员会",
+      "referenceUrl": "https://wsjkw.gxzf.gov.cn/xxgk_49493/fdzdgk/czxx/ztbxx/",
+      "match": {
+        "host": "wsjkw.gxzf.gov.cn",
+        "pathPrefix": "/xxgk_49493/fdzdgk/czxx/ztbxx/"
+      },
+      "verification": "live-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["fixtures/static-list.html", "tests/extract.test.mjs"]
+    },
+    {
+      "name": "广西大学",
+      "referenceUrl": "https://www.gxu.edu.cn/tzgg/xxgg.htm",
+      "match": {
+        "host": "www.gxu.edu.cn",
+        "pathPrefix": "/tzgg/xxgg"
+      },
+      "verification": "live-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["fixtures/static-list.html", "tests/extract.test.mjs"]
+    },
+    {
+      "name": "广西壮族自治区文化和旅游厅",
+      "referenceUrl": "http://wlt.gxzf.gov.cn/zfxxgk/fdzdgknr/czxx/cgztbxx/",
+      "match": {
+        "host": "wlt.gxzf.gov.cn",
+        "pathPrefix": "/zfxxgk/fdzdgknr/czxx/cgztbxx/"
+      },
+      "verification": "live-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["fixtures/static-list.html", "tests/extract.test.mjs"]
+    }
+  ],
   "implementation": "src/static-html.mjs#extractStaticHtml",
   "fixtures": ["fixtures/static-list.html"],
   "tests": ["tests/extract.test.mjs"]

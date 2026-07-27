@@ -1,0 +1,15 @@
+{
+  "capabilityId": "static-html-list",
+  "baseCapabilityVersion": "0.1.1",
+  "target": {
+    "name": "Synthetic public reference",
+    "referenceUrl": "https://example.test/notices",
+    "match": {
+      "host": "example.test",
+      "pathPrefix": "/notices"
+    },
+    "verification": "fixture-tested",
+    "verifiedAt": "2026-07-27",
+    "evidence": ["fixture.html", "reference.test.mjs"]
+  }
+}

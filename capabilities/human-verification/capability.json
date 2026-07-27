@@ -1,6 +1,6 @@
 {
   "id": "human-verification",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "human-handoff",
   "scope": "generic",
   "status": "human-required",
@@ -8,6 +8,20 @@
   "appliesTo": ["Authorized workflows that can pause for a human"],
   "notAppliesTo": ["Automated challenge bypass"],
   "requirements": { "http": false, "api": false, "browser": true, "login": false, "human": true },
+  "verifiedTargets": [
+    {
+      "name": "广西中医药大学第一附属医院",
+      "referenceUrl": "https://www.gxzyy.com.cn/public_cggg/",
+      "match": {
+        "host": "www.gxzyy.com.cn",
+        "pathPrefix": "/public_cggg/"
+      },
+      "verification": "reported",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["fixtures/challenge.html", "tests/detect.test.mjs"],
+      "notes": "The public list can occasionally present a slider challenge; detection does not bypass it."
+    }
+  ],
   "implementation": "src/detect.mjs#containsHumanChallenge",
   "fixtures": ["fixtures/challenge.html"],
   "tests": ["tests/detect.test.mjs"]

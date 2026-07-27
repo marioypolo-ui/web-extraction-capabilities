@@ -1,6 +1,6 @@
 {
   "id": "tender-platform-families",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "migrated-platform-adapters",
   "scope": "platform-family",
   "status": "supported",
@@ -8,6 +8,117 @@
   "appliesTo": ["researchApp", "Public procurement portals", "Known CMS list families"],
   "notAppliesTo": ["Unlisted domains assumed to share a platform without verification"],
   "requirements": { "http": true, "api": true, "browser": false, "login": false, "human": false },
+  "verifiedTargets": [
+    {
+      "name": "广西财经学院",
+      "referenceUrl": "https://www.gxufe.edu.cn/www/myweb/level.html?typeid=www010e&typeid0=www01",
+      "match": {
+        "host": "www.gxufe.edu.cn",
+        "pathPrefix": "/www/myweb/level.html"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["fixtures/gxufe-level.html", "tests/migrated-platforms.test.mjs"]
+    },
+    {
+      "name": "广西医科大学第一附属医院",
+      "referenceUrl": "https://cg.gxmuyfy.cn/researchApp/announcementList",
+      "match": {
+        "host": "cg.gxmuyfy.cn",
+        "pathPrefix": "/researchApp/announcementList"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": [
+        "fixtures/gxmuyfy-announcement-list.html",
+        "tests/migrated-platforms.test.mjs"
+      ]
+    },
+    {
+      "name": "广西医科大学附属口腔医院",
+      "referenceUrl": "http://124.227.108.205:9810/researchApp/announcementList",
+      "match": {
+        "host": "124.227.108.205",
+        "pathPrefix": "/researchApp/announcementList"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": [
+        "fixtures/gxmuyfy-announcement-list.html",
+        "tests/migrated-platforms.test.mjs"
+      ]
+    },
+    {
+      "name": "南宁产投",
+      "referenceUrl": "https://ctzc.nncytz.com/#/notice",
+      "match": {
+        "host": "ctzc.nncytz.com",
+        "pathPrefix": "/",
+        "hashPrefix": "#/notice"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["tests/migrated-platforms.test.mjs"]
+    },
+    {
+      "name": "广西政府采购网",
+      "referenceUrl": "http://www.ccgp-guangxi.gov.cn/site/category?parentId=66485&childrenCode=ZcyAnnouncement",
+      "match": {
+        "host": "www.ccgp-guangxi.gov.cn",
+        "pathPrefix": "/site/category"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": [
+        "fixtures/ccgp-guangxi-category.html",
+        "tests/migrated-platforms.test.mjs"
+      ]
+    },
+    {
+      "name": "广西民族大学采购平台",
+      "referenceUrl": "https://purchase.gxmzu.edu.cn/cgpt/web/goEjflPage",
+      "match": {
+        "host": "purchase.gxmzu.edu.cn",
+        "pathPrefix": "/cgpt/web/goEjflPage"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["fixtures/gxmzu-purchase.html", "tests/migrated-platforms.test.mjs"]
+    },
+    {
+      "name": "广西经贸职业技术学院",
+      "referenceUrl": "https://www.gxjmxy.edu.cn/www/cwccggg/index.jhtml",
+      "match": {
+        "host": "www.gxjmxy.edu.cn",
+        "pathPrefix": "/www/cwccggg/"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["tests/migrated-platforms.test.mjs"]
+    },
+    {
+      "name": "广西中医药大学第二附属医院",
+      "referenceUrl": "https://www.gxzyefy.cn/info/infozbcg.html",
+      "match": {
+        "host": "www.gxzyefy.cn",
+        "pathPrefix": "/info/infozbcg"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["tests/migrated-platforms.test.mjs"]
+    },
+    {
+      "name": "广西医科大学第二附属医院",
+      "referenceUrl": "https://www.gxmush.cn/notice/notice_zbcg.html",
+      "match": {
+        "host": "www.gxmush.cn",
+        "pathPrefix": "/notice/notice_zbcg"
+      },
+      "verification": "fixture-tested",
+      "verifiedAt": "2026-07-27",
+      "evidence": ["tests/migrated-platforms.test.mjs"]
+    }
+  ],
   "implementation": "src/migrated/html.mjs",
   "fixtures": [
     "fixtures/list.html",

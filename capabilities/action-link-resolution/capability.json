@@ -8,6 +8,7 @@
   "appliesTo": ["Links with an explicit actionUrlTemplate or browser workflow"],
   "notAppliesTo": ["Opaque actions without a documented mapping"],
   "requirements": { "http": true, "api": false, "browser": false, "login": false, "human": false },
+  "verifiedTargets": [],
   "implementation": "src/static-html.mjs#extractStaticHtml",
   "fixtures": ["fixtures/action-links.html"],
   "tests": ["tests/extract.test.mjs"]

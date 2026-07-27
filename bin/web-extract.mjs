@@ -6,6 +6,7 @@ import {
   buildBundle,
   detectCapabilities,
   extract,
+  findCapabilitiesForUrl,
   getCatalog,
   packContribution,
   validateCatalog
@@ -50,6 +51,9 @@ async function main() {
   const options = parseArgs(rest);
 
   if (command === 'catalog') {
+    if (options.url) {
+      return { url: options.url, matches: await findCapabilitiesForUrl(options.url) };
+    }
     return { capabilities: await getCatalog() };
   }
   if (command === 'validate') {

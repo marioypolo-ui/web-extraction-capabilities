@@ -1,4 +1,5 @@
 import { extractWithBrowser } from './browser.mjs';
+import { findCapabilitiesForUrl } from './catalog.mjs';
 import { detectCapabilities } from './detect.mjs';
 import { fetchResource } from './http.mjs';
 import { extractJsonApi } from './json-api.mjs';
@@ -86,13 +87,18 @@ async function extractMigratedPlatforms(input) {
 export async function extract(input = {}) {
   let capabilityId = input.capabilityId;
   if (!capabilityId || capabilityId === 'auto') {
-    const source = await staticInput(input, input.config?.http);
-    const detected = await detectCapabilities({ url: input.url, html: source.html });
-    capabilityId = detected.recommendations[0]?.capabilityId;
-    if (!capabilityId) {
-      return createResult('auto', [], [...source.diagnostics, ...detected.diagnostics], input.url);
+    const catalogMatch = (await findCapabilitiesForUrl(input.url)).find((match) => match.reusable);
+    if (catalogMatch) {
+      capabilityId = catalogMatch.capabilityId;
+    } else {
+      const source = await staticInput(input, input.config?.http);
+      const detected = await detectCapabilities({ url: input.url, html: source.html });
+      capabilityId = detected.recommendations[0]?.capabilityId;
+      if (!capabilityId) {
+        return createResult('auto', [], [...source.diagnostics, ...detected.diagnostics], input.url);
+      }
+      input = { ...input, html: source.html };
     }
-    input = { ...input, html: source.html };
   }
 
   let extracted;

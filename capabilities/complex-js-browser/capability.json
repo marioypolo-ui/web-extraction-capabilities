@@ -8,6 +8,7 @@
   "appliesTo": ["Browser-rendered pages supported by Playwright"],
   "notAppliesTo": ["CAPTCHA bypass", "Unauthorized sessions"],
   "requirements": { "http": false, "api": false, "browser": true, "login": false, "human": false },
+  "verifiedTargets": [],
   "implementation": "src/browser.mjs#extractWithBrowser",
   "fixtures": ["fixtures/spa-shell.html"],
   "tests": ["tests/browser.test.mjs"]

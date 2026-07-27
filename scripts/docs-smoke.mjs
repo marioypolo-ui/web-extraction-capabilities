@@ -10,12 +10,19 @@ const cli = path.join(root, 'bin', 'web-extract.mjs');
 const fixture = path.join(root, 'fixtures', 'static-list.html');
 const consumer = path.join(root, 'examples', 'standalone-consumer', 'run.mjs');
 const contributionSource = path.join(root, 'examples', 'capability-contribution');
+const referenceContributionSource = path.join(
+  root,
+  'examples',
+  'website-reference-contribution'
+);
 const readmeZh = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
 const readmeEn = fs.readFileSync(path.join(root, 'README.en.md'), 'utf8');
 const upgradesGuide = fs.readFileSync(path.join(root, 'docs', 'upgrades.md'), 'utf8');
+const authoringGuide = fs.readFileSync(path.join(root, 'docs', 'capability-authoring.md'), 'utf8');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'web-cap-docs-'));
 const bundle = path.join(temp, 'bundle');
 const contribution = path.join(temp, 'contribution');
+const referenceContribution = path.join(temp, 'reference-contribution');
 
 function run(args) {
   const result = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8' });
@@ -64,30 +71,48 @@ try {
     '--output',
     contribution
   ]);
+  const packedReference = run([
+    cli,
+    'contribution:pack',
+    '--source',
+    referenceContributionSource,
+    '--output',
+    referenceContribution
+  ]);
   const updatePolicyDocumented =
     readmeZh.includes('更新方式选择') &&
     readmeEn.includes('Choose an update mode') &&
     ['GitHub Releases', '自动检查', '手动检查', '暂不检查', 'SHA256', '回滚'].every((term) =>
       upgradesGuide.includes(term)
     );
+  const referenceFeedbackDocumented =
+    readmeZh.includes('网站参考与能力回流') &&
+    readmeEn.includes('Website references and capability feedback') &&
+    upgradesGuide.includes('catalogSha256') &&
+    authoringGuide.includes('verifiedTargets') &&
+    authoringGuide.includes('catalog --url');
 
   const ok =
     catalog.capabilities.length >= 10 &&
     validation.errors.length === 0 &&
     detection.recommendations[0].capabilityId === 'static-html-list' &&
     extraction.records.length === 2 &&
-    snapshot.version === '0.1.1' &&
+    snapshot.version === '0.1.2' &&
+    snapshot.bundleFormatVersion === 1 &&
     standalone.records.length === 2 &&
     packedContribution.capabilityId === 'example-card-list' &&
-    updatePolicyDocumented;
+    packedReference.contributionKind === 'website-reference' &&
+    updatePolicyDocumented &&
+    referenceFeedbackDocumented;
   process.stdout.write(
     `${JSON.stringify(
       {
         ok,
-        commandsRun: 7,
+        commandsRun: 8,
         capabilityCount: catalog.capabilities.length,
         extractedRecords: standalone.records.length,
-        updatePolicyDocumented
+        updatePolicyDocumented,
+        referenceFeedbackDocumented
       },
       null,
       2

@@ -13,9 +13,25 @@ test('bundle is reproducible and records a SHA256 for every copied file', async 
   const first = await buildBundle({ outputDir: path.join(root, 'one') });
   const second = await buildBundle({ outputDir: path.join(root, 'two') });
 
+  assert.equal(first.bundleFormatVersion, 1);
   assert.equal(first.bundleSha256, second.bundleSha256);
+  assert.equal(first.catalogSha256, second.catalogSha256);
+  assert.match(first.catalogSha256, /^[a-f0-9]{64}$/);
+  assert.ok(first.capabilities.length >= 10);
+  assert.ok(first.capabilities.some((item) => item.verifiedTargets.length > 0));
+  assert.ok(
+    first.capabilities.some((item) =>
+      item.verifiedTargets.some((target) => target.match.host === 'www.gxufe.edu.cn')
+    )
+  );
   assert.ok(first.files.length > 5);
   assert.ok(first.files.every((item) => /^[a-f0-9]{64}$/.test(item.sha256)));
+  assert.ok(first.files.some((item) => item.path === 'docs/upgrades.md'));
+  assert.ok(
+    first.files.some(
+      (item) => item.path === 'examples/website-reference-contribution/reference.json'
+    )
+  );
 });
 
 test('standalone consumer extracts records using only the generated bundle', async () => {

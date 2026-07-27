@@ -3,8 +3,22 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { getCatalog } from './catalog.mjs';
+
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const INCLUDED = ['bin', 'capabilities', 'schemas', 'src', 'package.json', 'LICENSE'];
+const INCLUDED = [
+  'bin',
+  'capabilities',
+  'schemas',
+  'src',
+  'docs',
+  'examples',
+  'package.json',
+  'LICENSE',
+  'README.md',
+  'README.en.md',
+  'CONTRIBUTING.md'
+];
 
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
@@ -51,10 +65,27 @@ export async function buildBundle({ outputDir }) {
 
   files.sort((left, right) => left.path.localeCompare(right.path));
   const bundleSha256 = sha256(JSON.stringify(files));
+  const catalog = await getCatalog();
+  const capabilities = catalog.map((capability) => ({
+    id: capability.id,
+    version: capability.version,
+    status: capability.status,
+    scope: capability.scope,
+    verifiedTargets: capability.verifiedTargets.map((target) => ({
+      name: target.name,
+      match: target.match,
+      verification: target.verification,
+      verifiedAt: target.verifiedAt
+    }))
+  }));
+  const catalogSha256 = sha256(JSON.stringify(catalog));
   const manifest = {
+    bundleFormatVersion: 1,
     name: '@marioypolo/web-extraction-capabilities',
-    version: '0.1.1',
+    version: '0.1.2',
     bundleSha256,
+    catalogSha256,
+    capabilities,
     files
   };
   await fs.writeFile(

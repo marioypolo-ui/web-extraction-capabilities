@@ -16,6 +16,24 @@ test('catalog CLI writes only parseable JSON to stdout', () => {
   assert.ok(parsed.capabilities.length >= 10);
 });
 
+test('catalog CLI finds verified website references by URL', () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      cli,
+      'catalog',
+      '--url',
+      'https://www.gxufe.edu.cn/www/myweb/level.html?typeid=www010e&typeid0=www01'
+    ],
+    { encoding: 'utf8' }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.matches[0].capabilityId, 'tender-platform-families');
+  assert.equal(parsed.matches[0].target.name, '广西财经学院');
+});
+
 test('unknown CLI command fails with JSON instead of mixed console output', () => {
   const result = spawnSync(process.execPath, [cli, 'unknown-command'], { encoding: 'utf8' });
 
@@ -72,7 +90,7 @@ test('bundle CLI creates a versioned snapshot manifest', () => {
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).version, '0.1.1');
+  assert.equal(JSON.parse(result.stdout).version, '0.1.2');
   assert.equal(fs.existsSync(path.join(output, 'bundle-manifest.json')), true);
 });
 
@@ -93,6 +111,7 @@ test('contribution:pack CLI creates a restricted contribution package', () => {
       appliesTo: ['Synthetic page'],
       notAppliesTo: ['Other pages'],
       requirements: { http: true },
+      verifiedTargets: [],
       implementation: 'adapter.mjs',
       fixtures: ['fixture.html'],
       tests: ['adapter.test.mjs']
