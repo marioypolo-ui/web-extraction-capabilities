@@ -51,11 +51,11 @@ test('loads immutable bundle runtimes in isolation', async () => {
   assert.equal((await current.extract(staticInput)).records.length, 2);
 });
 
-test('requires a matching expected version even when validation is skipped', async () => {
+test('validate: false requires a matching expected version', async () => {
   const bundleDir = await makeBundle('trusted');
 
   await assert.rejects(
-    createBundleRuntime({ bundleDir, expectedVersion: '9.9.9' }),
+    createBundleRuntime({ bundleDir, expectedVersion: '9.9.9', validate: false }),
     /does not match expected version/i
   );
 
@@ -65,4 +65,17 @@ test('requires a matching expected version even when validation is skipped', asy
     validate: false
   });
   assert.equal(runtime.version, LIBRARY_VERSION);
+});
+
+test('validate: false rejects a manifest version that differs from the bundle module', async () => {
+  const bundleDir = await makeBundle('manifest-version-mismatch');
+  const manifestPath = path.join(bundleDir, 'bundle-manifest.json');
+  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+  manifest.version = '9.9.9';
+  await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+
+  await assert.rejects(
+    createBundleRuntime({ bundleDir, validate: false }),
+    /module version .* does not match manifest/i
+  );
 });
