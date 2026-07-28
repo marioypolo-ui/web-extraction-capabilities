@@ -72,9 +72,21 @@ await extract({
 
 ```powershell
 node bin/web-extract.mjs bundle --output dist/bundle
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.1.3
 ```
 
-应用复制整个目录并保存 `bundle-manifest.json`。运行时从应用自己的 vendor 目录导入，不引用兄弟目录，不自动拉取 main。
+应用复制整个目录并保存 `bundle-manifest.json`。每个版本使用独立且不可变的目录；运行时从应用自己的 vendor 目录导入，不引用兄弟目录，不自动拉取 main。
+
+```js
+import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
+
+const candidate = await createBundleRuntime({
+  bundleDir: 'vendor/web-extraction-capabilities/0.1.3',
+  expectedVersion: '0.1.3'
+});
+```
+
+当前版本和候选版本可以同时加载，由应用负责影子比较、回退和晋升。`bundle:validate` 用于已发布 Bundle，`validate` 用于源码检出；中央校验不替应用作切换决策。候选版本创建失败不得破坏已加载的当前运行时。
 
 独立示例：
 
@@ -84,6 +96,12 @@ node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtu
 
 Bundle 的 `bundle-manifest.json` 包含 `bundleFormatVersion`、`catalogSha256` 和能力摘要。应用只处理自己明确支持的格式版本；遇到更高格式版本时保留当前 Bundle 并通知维护。更新 Bundle 后必须比较新旧能力目录，并为自己保存的全部网站重新执行 URL 匹配；新增或变化的路由先影子验证，再进入生产。
 
-## 6. 业务层职责
+## 6. 国内政务网站直连
+
+中国政府、政府部门和行政事业单位网站即使存在 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 或系统全局代理，也必须直连。应用网络层必须使用显式 direct dispatcher，或为所有已配置目标主机提供完整 `NO_PROXY` 覆盖；不得在直连失败时静默代理兜底，必须生成应用可见的抓取诊断。
+
+中央库只规定契约，不负责政府站点分类，也不修改 fetch 行为。若应用替换进程级全局 dispatcher，中央库无法保证路由选择；应用必须自行执行直连和逐主机验证。
+
+## 7. 业务层职责
 
 调用应用负责关键词、日期范围、去重、持久化、告警、定时运行、代理策略和凭据生命周期。中央库的 `publishedAt` 可以为空，应用不得仅因日期不可信就假设记录不存在。

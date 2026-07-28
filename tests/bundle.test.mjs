@@ -6,14 +6,19 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-import { buildBundle, validateBundle } from '../src/index.mjs';
+import { buildBundle, LIBRARY_VERSION, validateBundle } from '../src/index.mjs';
 
 test('bundle is reproducible and records a SHA256 for every copied file', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'web-cap-bundle-'));
+  const packageJson = JSON.parse(
+    await fs.readFile(new URL('../package.json', import.meta.url), 'utf8')
+  );
   const first = await buildBundle({ outputDir: path.join(root, 'one') });
   const second = await buildBundle({ outputDir: path.join(root, 'two') });
   const validated = await validateBundle({ bundleDir: path.join(root, 'one') });
 
+  assert.equal(packageJson.version, LIBRARY_VERSION);
+  assert.equal(first.version, LIBRARY_VERSION);
   assert.equal(first.bundleFormatVersion, 1);
   assert.equal(first.bundleSha256, second.bundleSha256);
   assert.equal(first.catalogSha256, second.catalogSha256);

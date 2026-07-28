@@ -97,7 +97,7 @@ try {
     validation.errors.length === 0 &&
     detection.recommendations[0].capabilityId === 'static-html-list' &&
     extraction.records.length === 2 &&
-    snapshot.version === '0.1.2' &&
+    snapshot.version === '0.1.3' &&
     snapshot.bundleFormatVersion === 1 &&
     standalone.records.length === 2 &&
     packedContribution.capabilityId === 'example-card-list' &&

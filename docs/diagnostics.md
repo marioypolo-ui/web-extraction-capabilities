@@ -18,3 +18,7 @@
 | `MIGRATED_ADAPTER_WARNING` | A migrated platform adapter reported risk | Verify the listed platform and fixture |
 
 Every result includes diagnostics. Applications should persist and surface error and human-required diagnostics immediately.
+
+`ACTION_LINK_REQUIRES_CONFIGURATION` applies only when an action link is a plausible record. Explicit pagination and mobile-view controls are navigation controls and are ignored instead of being reported as unresolved records.
+
+For Chinese government, government-department, and public-institution targets, a failed direct route is an application-visible fetch diagnostic. The consuming application's network layer must not retry that failure through a proxy. The central library defines this diagnostic contract but does not classify targets or replace application fetch routing.
