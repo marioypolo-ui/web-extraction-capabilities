@@ -125,9 +125,20 @@ function assertExactTree(manifest, tree) {
 }
 
 async function validatePackageIdentity(bundleDir, manifest) {
+  const packagePath = path.join(bundleDir, 'package.json');
+  let packageStat;
+  try {
+    packageStat = await fs.lstat(packagePath);
+  } catch {
+    throw new Error('Bundle package.json must be a real file');
+  }
+  if (packageStat.isSymbolicLink() || !packageStat.isFile()) {
+    throw new Error('Bundle package.json must be a real file');
+  }
+
   let packageJson;
   try {
-    packageJson = JSON.parse(await fs.readFile(path.join(bundleDir, 'package.json'), 'utf8'));
+    packageJson = JSON.parse(await fs.readFile(packagePath, 'utf8'));
   } catch (error) {
     throw new Error(`Bundle package.json is invalid: ${error.message}`);
   }

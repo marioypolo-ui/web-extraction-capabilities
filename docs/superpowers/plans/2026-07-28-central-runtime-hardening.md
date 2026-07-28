@@ -790,14 +790,14 @@ Verified by the control agent on 2026-07-28:
   diagnostic.
 - No live HTML, IP configuration, Cookie, or credential was committed.
 
-- [ ] **Step 8: Commit release readiness**
+- [x] **Step 8: Commit release readiness**
 
 ```powershell
 git add package.json package-lock.json src/result.mjs .github/workflows/ci.yml .github/workflows/release-candidate.yml .github/workflows/release.yml README.md README.en.md docs/integration.md docs/upgrades.md docs/diagnostics.md PROGRESS.md tests
 git commit -m "chore: prepare v0.1.3 release"
 ```
 
-- [ ] **Step 9: Review the complete branch diff**
+- [x] **Step 9: Review the complete branch diff**
 
 Run:
 

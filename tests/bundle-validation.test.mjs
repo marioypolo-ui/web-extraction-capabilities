@@ -150,6 +150,17 @@ test('rejects symlinked bundle entries when supported by the platform', async ()
   await assert.rejects(validateBundle({ bundleDir }), /links are not allowed/i);
 });
 
+test('rejects a symlinked package before reading its target', async () => {
+  const bundleDir = await makeBundle();
+  const packagePath = path.join(bundleDir, 'package.json');
+  const outsidePath = path.join(path.dirname(bundleDir), 'outside-package');
+  await fs.mkdir(outsidePath);
+  await fs.rm(packagePath);
+  await fs.symlink(outsidePath, packagePath, process.platform === 'win32' ? 'junction' : 'dir');
+
+  await assert.rejects(validateBundle({ bundleDir }), /package\.json must be a real file/i);
+});
+
 test('rejects symlinked bundle directories when supported by the platform', async () => {
   const bundleDir = await makeBundle();
   const sourceDir = path.join(bundleDir, 'source-src');
