@@ -21,4 +21,6 @@ Every result includes diagnostics. Applications should persist and surface error
 
 `ACTION_LINK_REQUIRES_CONFIGURATION` applies only when an action link is a plausible record. Explicit pagination and mobile-view controls are navigation controls and are ignored instead of being reported as unresolved records.
 
-For Chinese government, government-department, and public-institution targets, a failed direct route is an application-visible fetch diagnostic. The consuming application's network layer must not retry that failure through a proxy. The central library defines this diagnostic contract but does not classify targets or replace application fetch routing.
+Chinese government, government-department, and public-institution targets require a direct route even when `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, or a global system proxy is configured. The consuming application's network layer must bypass those proxies with an explicit direct dispatcher or complete `NO_PROXY` coverage.
+
+If the direct route fails, the application must emit an application-visible fetch diagnostic and must never silently retry or fall back through a proxy. The central library defines this contract only; the consuming application's network layer is responsible for enforcing it.
