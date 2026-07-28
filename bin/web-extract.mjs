@@ -9,6 +9,7 @@ import {
   findCapabilitiesForUrl,
   getCatalog,
   packContribution,
+  validateBundle,
   validateCatalog
 } from '../src/index.mjs';
 
@@ -72,6 +73,12 @@ async function main() {
   }
   if (command === 'bundle') {
     return buildBundle({ outputDir: path.resolve(options.output || 'dist/bundle') });
+  }
+  if (command === 'bundle:validate') {
+    return validateBundle({
+      bundleDir: path.resolve(options.bundle || ''),
+      expectedVersion: options.expectedVersion
+    });
   }
   if (command === 'contribution:pack') {
     return packContribution({

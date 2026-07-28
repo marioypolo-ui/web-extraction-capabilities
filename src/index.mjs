@@ -1,4 +1,5 @@
 export { buildBundle } from './bundle.mjs';
+export { validateBundle } from './bundle-validation.mjs';
 export { findCapabilitiesForUrl, getCatalog, validateCatalog } from './catalog.mjs';
 export { packContribution } from './contribution.mjs';
 export { containsHumanChallenge, detectCapabilities } from './detect.mjs';
