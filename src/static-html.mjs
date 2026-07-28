@@ -3,9 +3,11 @@ import { diagnostic } from './result.mjs';
 
 const NAVIGATION_TITLE_PATTERN =
   /^(?:mobile version|\u624b\u673a\u7248|\u8df3\u8f6c|\u9996\u9875|\u4e0a\u4e00\u9875|\u4e0b\u4e00\u9875|\u5c3e\u9875|\u672b\u9875|\u7b2c\s*\d+\s*\u9875|first|first page|previous|prev|previous page|next|next page|last|last page)$/i;
-const PAGINATION_HANDLER_PATTERN =
-  /(?:^|[.\s_])(go|goto|change|turn|jump|set|simple_list_goto)?page(?:_fun)?\s*\(|_simple_list_gotopage_fun\s*\(/i;
+const NAVIGATION_ATTRIBUTE_PATTERN =
+  /(?:^|[^a-z0-9])(?:nav(?:igation)?|menu|header|breadcrumb|pagination|pager)(?:$|[^a-z0-9])/i;
 const CONTENT_HANDLER_PATTERN = /(?:open|show|view|detail|article|notice)\w*\s*\(/i;
+const VOID_ELEMENT_PATTERN =
+  /^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
 
 const ACTION_TITLE_PATTERN = /^(?:点击查看详情|查看详情|详情|more|read more)$/i;
 
@@ -64,7 +66,39 @@ function resolveActionUrl(block, attributes, config, baseUrl) {
   return new URL(config.actionUrlTemplate.replaceAll('{id}', encodeURIComponent(id)), baseUrl).toString();
 }
 
-function isNavigationActionControl({ block, attributes, title }) {
+function hasNavigationAncestor(html, blockIndex) {
+  const ancestors = [];
+  const tags = String(html || '')
+    .slice(0, blockIndex)
+    .matchAll(/<(\/)?([a-z][\w:-]*)([^>]*)>/gi);
+
+  for (const tagMatch of tags) {
+    const tagName = tagMatch[2].toLowerCase();
+    if (tagMatch[1]) {
+      for (let index = ancestors.length - 1; index >= 0; index -= 1) {
+        if (ancestors[index].tagName === tagName) {
+          ancestors.length = index;
+          break;
+        }
+      }
+      continue;
+    }
+    if (!VOID_ELEMENT_PATTERN.test(tagName) && !/\/\s*$/.test(tagMatch[3])) {
+      ancestors.push({ tagName, attributes: tagMatch[3] });
+    }
+  }
+
+  return ancestors.some(({ tagName, attributes }) => {
+    if (tagName === 'nav') {
+      return true;
+    }
+    return ['class', 'id', 'role'].some((name) =>
+      NAVIGATION_ATTRIBUTE_PATTERN.test(attribute(attributes, name))
+    );
+  });
+}
+
+function isNavigationActionControl({ block, attributes, title, navigationAncestor }) {
   const handler = attribute(attributes, 'onclick');
   const hasTime = /<time\b/i.test(block);
   const hasDate = Boolean(parseLikelyPublicationDate(textContent(block)));
@@ -78,20 +112,18 @@ function isNavigationActionControl({ block, attributes, title }) {
   if (hasRecordMetadata) {
     return false;
   }
-  return (
-    NAVIGATION_TITLE_PATTERN.test(title) ||
-    (!title && PAGINATION_HANDLER_PATTERN.test(handler))
-  );
+  return !title || NAVIGATION_TITLE_PATTERN.test(title) || navigationAncestor;
 }
 
 export function extractStaticHtml({ html, url, config = {} }) {
   const diagnostics = [];
   const records = [];
-  const blocks = [...String(html || '').matchAll(/<(?:li|article)\b[\s\S]*?<\/(?:li|article)>/gi)].map(
-    (match) => match[0]
-  );
+  const blocks = [
+    ...String(html || '').matchAll(/<(?:li|article)\b[\s\S]*?<\/(?:li|article)>/gi)
+  ];
 
-  for (const block of blocks) {
+  for (const blockMatch of blocks) {
+    const block = blockMatch[0];
     const anchor = /<a\b([^>]*)>([\s\S]*?)<\/a>/i.exec(block);
     if (!anchor) {
       continue;
@@ -103,7 +135,14 @@ export function extractStaticHtml({ html, url, config = {} }) {
     if (actionOnly) {
       href = resolveActionUrl(block, attributes, config, url);
       if (!href) {
-        if (isNavigationActionControl({ block, attributes, title })) {
+        if (
+          isNavigationActionControl({
+            block,
+            attributes,
+            title,
+            navigationAncestor: hasNavigationAncestor(html, blockMatch.index || 0)
+          })
+        ) {
           continue;
         }
         diagnostics.push(

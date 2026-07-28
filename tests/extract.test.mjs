@@ -95,6 +95,60 @@ test('pagination handlers do not suppress non-navigation action titles', async (
   assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
 });
 
+test('untitled action-only controls without record evidence do not produce diagnostics', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<ul><li><a href="#"></a></li></ul>'
+  });
+
+  assert.equal(
+    result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'),
+    false
+  );
+  assert.ok(result.diagnostics.some((item) => item.code === 'ZERO_RECORDS'));
+});
+
+test('action-only placeholders in semantic and tokenized navigation containers are ignored', async () => {
+  const cases = [
+    '<nav><ul><li><a href="">International education</a></li></ul></nav>',
+    '<ul class="nav-down"><li><a href="#" title="Admissions">Admissions</a></li></ul>'
+  ];
+
+  for (const html of cases) {
+    const result = await extract({
+      capabilityId: 'static-html-list',
+      url: 'https://example.test/notices',
+      html
+    });
+    assert.equal(
+      result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'),
+      false,
+      html
+    );
+  }
+});
+
+test('action-only titles in ordinary content lists remain diagnosed', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<ul class="news-list"><li><a href="#" title="Admissions">Admissions</a></li></ul>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
+test('record evidence inside navigation containers remains diagnosed', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<nav><ul><li><time datetime="2026-07-28"></time><a href="#">Dated notice</a></li></ul></nav>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
 test('action-only blocks with record evidence remain diagnosed', async () => {
   const cases = [
     '<li><time datetime="2026-07-28"></time><a href="javascript:;" onclick="goPage(2)">Dated notice</a></li>',
