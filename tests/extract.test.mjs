@@ -64,6 +64,37 @@ test('action-only pagination and mobile controls do not produce record diagnosti
   assert.ok(result.diagnostics.some((item) => item.code === 'ZERO_RECORDS'));
 });
 
+test('normal Chinese pagination titles do not produce record diagnostics', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: `
+      <ul>
+        <li><a href="javascript:;">&#x9996;&#x9875;</a></li>
+        <li><a href="javascript:;">&#x4e0a;&#x4e00;&#x9875;</a></li>
+        <li><a href="javascript:;">&#x4e0b;&#x4e00;&#x9875;</a></li>
+        <li><a href="javascript:;">&#x5c3e;&#x9875;</a></li>
+        <li><a href="javascript:;">&#x672b;&#x9875;</a></li>
+      </ul>`
+  });
+
+  assert.equal(
+    result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'),
+    false
+  );
+  assert.ok(result.diagnostics.some((item) => item.code === 'ZERO_RECORDS'));
+});
+
+test('pagination handlers do not suppress non-navigation action titles', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<ul><li><a href="javascript:;" onclick="goPage(42)">Unknown but titled notice</a></li></ul>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
 test('action-only blocks with record evidence remain diagnosed', async () => {
   const cases = [
     '<li><time datetime="2026-07-28"></time><a href="javascript:;" onclick="goPage(2)">Dated notice</a></li>',
