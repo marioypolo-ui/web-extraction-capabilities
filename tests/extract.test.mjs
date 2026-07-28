@@ -129,6 +129,35 @@ test('action-only placeholders in semantic and tokenized navigation containers a
   }
 });
 
+test('navigation-like tags inside HTML comments do not suppress content diagnostics', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<!-- <div class="nav-down"> --><ul class="news-list"><li><a href="#">Real notice</a></li></ul>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
+test('navigation tokens on block roots are ignored unless record evidence is present', async () => {
+  const placeholder = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<li class="nav-down"><a href="#">Admissions</a></li>'
+  });
+  const dated = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<li class="nav-down"><time datetime="2026-07-28"></time><a href="#">Dated notice</a></li>'
+  });
+
+  assert.equal(
+    placeholder.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'),
+    false
+  );
+  assert.ok(dated.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
 test('action-only titles in ordinary content lists remain diagnosed', async () => {
   const result = await extract({
     capabilityId: 'static-html-list',

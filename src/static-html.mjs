@@ -38,6 +38,18 @@ function attribute(attributes, name) {
   return decodeEntities(match?.[1] ?? match?.[2] ?? match?.[3] ?? '');
 }
 
+function maskHtmlComments(value) {
+  return String(value || '').replace(/<!--[\s\S]*?(?:-->|$)/g, (comment) =>
+    ' '.repeat(comment.length)
+  );
+}
+
+function hasNavigationAttributes(attributes) {
+  return ['class', 'id', 'role'].some((name) =>
+    NAVIGATION_ATTRIBUTE_PATTERN.test(attribute(attributes, name))
+  );
+}
+
 function chooseTitle(attributes, innerHtml) {
   const metadataTitle = attribute(attributes, 'title').replace(
     /^(?:标题|题名)\s*[:：]\s*/i,
@@ -92,13 +104,11 @@ function hasNavigationAncestor(html, blockIndex) {
     if (tagName === 'nav') {
       return true;
     }
-    return ['class', 'id', 'role'].some((name) =>
-      NAVIGATION_ATTRIBUTE_PATTERN.test(attribute(attributes, name))
-    );
+    return hasNavigationAttributes(attributes);
   });
 }
 
-function isNavigationActionControl({ block, attributes, title, navigationAncestor }) {
+function isNavigationActionControl({ block, attributes, title, navigationContext }) {
   const handler = attribute(attributes, 'onclick');
   const hasTime = /<time\b/i.test(block);
   const hasDate = Boolean(parseLikelyPublicationDate(textContent(block)));
@@ -112,14 +122,15 @@ function isNavigationActionControl({ block, attributes, title, navigationAncesto
   if (hasRecordMetadata) {
     return false;
   }
-  return !title || NAVIGATION_TITLE_PATTERN.test(title) || navigationAncestor;
+  return !title || NAVIGATION_TITLE_PATTERN.test(title) || navigationContext;
 }
 
 export function extractStaticHtml({ html, url, config = {} }) {
   const diagnostics = [];
   const records = [];
+  const structuralHtml = maskHtmlComments(html);
   const blocks = [
-    ...String(html || '').matchAll(/<(?:li|article)\b[\s\S]*?<\/(?:li|article)>/gi)
+    ...structuralHtml.matchAll(/<(?:li|article)\b[\s\S]*?<\/(?:li|article)>/gi)
   ];
 
   for (const blockMatch of blocks) {
@@ -130,6 +141,7 @@ export function extractStaticHtml({ html, url, config = {} }) {
     }
     const attributes = anchor[1];
     const title = chooseTitle(attributes, anchor[2]);
+    const blockAttributes = /^<(?:li|article)\b([^>]*)>/i.exec(block)?.[1] || '';
     let href = attribute(attributes, 'href');
     const actionOnly = !href || href === '#' || /^javascript:/i.test(href);
     if (actionOnly) {
@@ -140,7 +152,9 @@ export function extractStaticHtml({ html, url, config = {} }) {
             block,
             attributes,
             title,
-            navigationAncestor: hasNavigationAncestor(html, blockMatch.index || 0)
+            navigationContext:
+              hasNavigationAttributes(blockAttributes) ||
+              hasNavigationAncestor(structuralHtml, blockMatch.index || 0)
           })
         ) {
           continue;
