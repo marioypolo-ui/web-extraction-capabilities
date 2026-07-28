@@ -118,6 +118,31 @@ test('bundle:validate CLI validates a generated standalone bundle', async () => 
   assert.equal(JSON.parse(validation.stdout).version, LIBRARY_VERSION);
 });
 
+test('bundle:validate CLI returns a JSON failure for a corrupted standalone bundle', async () => {
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'web-cap-cli-bundle-corrupt-'));
+  const output = path.join(root, 'bundle');
+  await buildBundle({ outputDir: output });
+  fs.appendFileSync(path.join(output, 'src', 'index.mjs'), '\n// corrupted\n', 'utf8');
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(output, 'bin', 'web-extract.mjs'),
+      'bundle:validate',
+      '--bundle',
+      output,
+      '--expected-version',
+      LIBRARY_VERSION
+    ],
+    { encoding: 'utf8' }
+  );
+
+  assert.notEqual(result.status, 0);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.error.code, 'COMMAND_FAILED');
+  assert.match(parsed.error.message, /SHA256 mismatch/i);
+});
+
 test('contribution:pack CLI creates a restricted contribution package', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-cap-cli-contribution-'));
   const source = path.join(root, 'source');

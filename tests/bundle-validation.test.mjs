@@ -53,6 +53,42 @@ test('rejects unsafe bundle paths', async () => {
   await assert.rejects(validateBundle({ bundleDir }), /unsafe bundle path/i);
 });
 
+test('rejects trailing slashes that alias a bundle file on Windows', async () => {
+  const bundleDir = await makeBundle();
+  const manifest = await readManifest(bundleDir);
+  manifest.files.find((entry) => entry.path === 'README.md').path = 'README.md/';
+  await writeManifest(bundleDir, manifest);
+
+  await assert.rejects(validateBundle({ bundleDir }), /unsafe bundle path/i);
+});
+
+test('rejects absolute bundle paths', async () => {
+  const bundleDir = await makeBundle();
+  const manifest = await readManifest(bundleDir);
+  manifest.files[0].path = path.resolve(bundleDir, 'outside.mjs');
+  await writeManifest(bundleDir, manifest);
+
+  await assert.rejects(validateBundle({ bundleDir }), /unsafe bundle path/i);
+});
+
+test('rejects backslash-containing bundle paths', async () => {
+  const bundleDir = await makeBundle();
+  const manifest = await readManifest(bundleDir);
+  manifest.files.find((entry) => entry.path === 'src/index.mjs').path = 'src\\index.mjs';
+  await writeManifest(bundleDir, manifest);
+
+  await assert.rejects(validateBundle({ bundleDir }), /unsafe bundle path/i);
+});
+
+test('rejects non-normalized bundle paths', async () => {
+  const bundleDir = await makeBundle();
+  const manifest = await readManifest(bundleDir);
+  manifest.files.find((entry) => entry.path === 'src/index.mjs').path = 'src//index.mjs';
+  await writeManifest(bundleDir, manifest);
+
+  await assert.rejects(validateBundle({ bundleDir }), /unsafe bundle path/i);
+});
+
 test('rejects duplicate bundle paths', async () => {
   const bundleDir = await makeBundle();
   const manifest = await readManifest(bundleDir);
@@ -94,4 +130,48 @@ test('rejects symlinked bundle entries when supported by the platform', async ()
   }
 
   await assert.rejects(validateBundle({ bundleDir }), /links are not allowed/i);
+});
+
+test('rejects symlinked bundle directories when supported by the platform', async () => {
+  const bundleDir = await makeBundle();
+  const sourceDir = path.join(bundleDir, 'source-src');
+  const entryDir = path.join(bundleDir, 'src');
+  await fs.rename(entryDir, sourceDir);
+  try {
+    await fs.symlink(sourceDir, entryDir, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch (error) {
+    if (process.platform === 'win32' && ['EPERM', 'EACCES'].includes(error.code)) {
+      return;
+    }
+    throw error;
+  }
+
+  await assert.rejects(validateBundle({ bundleDir }), /links are not allowed/i);
+});
+
+test('rejects bundles with an invalid aggregate SHA256', async () => {
+  const bundleDir = await makeBundle();
+  const manifest = await readManifest(bundleDir);
+  manifest.bundleSha256 = '0'.repeat(64);
+  await writeManifest(bundleDir, manifest);
+
+  await assert.rejects(validateBundle({ bundleDir }), /aggregate SHA256 mismatch/i);
+});
+
+test('rejects malformed capability summaries', async () => {
+  const bundleDir = await makeBundle();
+  const manifest = await readManifest(bundleDir);
+  manifest.capabilities[0].verifiedTargets = 'not-an-array';
+  await writeManifest(bundleDir, manifest);
+
+  await assert.rejects(validateBundle({ bundleDir }), /verifiedTargets must be an array/i);
+});
+
+test('rejects bundles with a mismatched expected version', async () => {
+  const bundleDir = await makeBundle();
+
+  await assert.rejects(
+    validateBundle({ bundleDir, expectedVersion: '9.9.9' }),
+    /does not match expected version/i
+  );
 });

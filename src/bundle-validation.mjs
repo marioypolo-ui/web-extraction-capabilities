@@ -17,6 +17,7 @@ function assertSafePath(value) {
   if (
     typeof value !== 'string' ||
     !value ||
+    value.endsWith('/') ||
     value.includes('\\') ||
     path.posix.isAbsolute(value) ||
     path.win32.isAbsolute(value) ||
