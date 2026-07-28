@@ -139,6 +139,16 @@ test('navigation-like tags inside HTML comments do not suppress content diagnost
   assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
 });
 
+test('unclosed comment markers in scripts do not hide later content diagnostics', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<script>const marker = "<!--";</script><ul class="news-list"><li><a href="#">Real notice</a></li></ul>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
 test('navigation tokens on block roots are ignored unless record evidence is present', async () => {
   const placeholder = await extract({
     capabilityId: 'static-html-list',

@@ -39,9 +39,7 @@ function attribute(attributes, name) {
 }
 
 function maskHtmlComments(value) {
-  return String(value || '').replace(/<!--[\s\S]*?(?:-->|$)/g, (comment) =>
-    ' '.repeat(comment.length)
-  );
+  return String(value || '').replace(/<!--[\s\S]*?-->/g, (comment) => ' '.repeat(comment.length));
 }
 
 function hasNavigationAttributes(attributes) {
