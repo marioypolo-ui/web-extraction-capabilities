@@ -149,6 +149,19 @@ test('unclosed comment markers in scripts do not hide later content diagnostics'
   assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
 });
 
+test('comment markers in separate script raw-text blocks do not hide intervening content', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: `
+      <script>const openingMarker = "<!--";</script>
+      <ul class="news-list"><li><a href="#">Intervening notice</a></li></ul>
+      <script>const closingMarker = "-->";</script>`
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
 test('navigation tokens on block roots are ignored unless record evidence is present', async () => {
   const placeholder = await extract({
     capabilityId: 'static-html-list',
@@ -183,6 +196,36 @@ test('record evidence inside navigation containers remains diagnosed', async () 
     capabilityId: 'static-html-list',
     url: 'https://example.test/notices',
     html: '<nav><ul><li><time datetime="2026-07-28"></time><a href="#">Dated notice</a></li></ul></nav>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
+test('javascript href content handlers remain diagnosed inside navigation contexts', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<nav><ul><li><a href="javascript:openNotice(42)">Open notice</a></li></ul></nav>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
+test('block-root content handlers remain diagnosed inside navigation contexts', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<nav><ul><li onclick="openNotice(42)"><a href="#">Open notice</a></li></ul></nav>'
+  });
+
+  assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
+});
+
+test('descendant data-id evidence remains diagnosed inside navigation contexts', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: '<nav><ul><li><a href="#"><span data-id="notice-42">Data notice</span></a></li></ul></nav>'
   });
 
   assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));

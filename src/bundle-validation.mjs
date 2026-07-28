@@ -28,23 +28,7 @@ function assertSafePath(value) {
   }
 }
 
-async function lstatBundleFile(bundleDir, relativePath) {
-  let current = bundleDir;
-  for (const segment of relativePath.split('/')) {
-    current = path.join(current, segment);
-    const stat = await fs.lstat(current);
-    if (stat.isSymbolicLink()) {
-      throw new Error(`Bundle links are not allowed: ${relativePath}`);
-    }
-  }
-  const stat = await fs.lstat(current);
-  if (!stat.isFile()) {
-    throw new Error(`Bundle entry is not a file: ${relativePath}`);
-  }
-  return current;
-}
-
-export async function readBundleManifest(bundleDir) {
+async function readBundleManifest(bundleDir) {
   if (!bundleDir) {
     throw new Error('bundleDir is required');
   }
@@ -65,8 +49,104 @@ export async function readBundleManifest(bundleDir) {
   return manifest;
 }
 
-export async function validateBundle({ bundleDir, expectedVersion } = {}) {
-  const absoluteBundleDir = path.resolve(bundleDir || '');
+function expectedDirectories(files) {
+  const directories = new Set();
+  for (const entry of files) {
+    const segments = entry.path.split('/');
+    segments.pop();
+    let current = '';
+    for (const segment of segments) {
+      current = current ? `${current}/${segment}` : segment;
+      directories.add(current);
+    }
+  }
+  return directories;
+}
+
+async function readBundleTree(bundleDir, relativeDirectory = '') {
+  const files = [];
+  const directories = [];
+  const directory = relativeDirectory
+    ? path.join(bundleDir, ...relativeDirectory.split('/'))
+    : bundleDir;
+  const entries = await fs.readdir(directory);
+
+  for (const name of entries.sort((left, right) => left.localeCompare(right))) {
+    const relativePath = relativeDirectory ? `${relativeDirectory}/${name}` : name;
+    const absolutePath = path.join(bundleDir, ...relativePath.split('/'));
+    const stat = await fs.lstat(absolutePath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(`Bundle links are not allowed: ${relativePath}`);
+    }
+    if (stat.isDirectory()) {
+      directories.push(relativePath);
+      const nested = await readBundleTree(bundleDir, relativePath);
+      files.push(...nested.files);
+      directories.push(...nested.directories);
+      continue;
+    }
+    if (!stat.isFile()) {
+      throw new Error(`Bundle entries must be regular files or directories: ${relativePath}`);
+    }
+    if (relativePath !== 'bundle-manifest.json') {
+      files.push({ path: relativePath, absolutePath });
+    }
+  }
+
+  return { files, directories };
+}
+
+function assertExactTree(manifest, tree) {
+  const expectedFiles = new Set(manifest.files.map((entry) => entry.path));
+  const actualFiles = new Set(tree.files.map((entry) => entry.path));
+  const expectedDirs = expectedDirectories(manifest.files);
+  const actualDirs = new Set(tree.directories);
+
+  for (const file of [...actualFiles].sort()) {
+    if (!expectedFiles.has(file)) {
+      throw new Error(`Unexpected bundle file: ${file}`);
+    }
+  }
+  for (const file of [...expectedFiles].sort()) {
+    if (!actualFiles.has(file)) {
+      throw new Error(`Missing bundle file: ${file}`);
+    }
+  }
+  for (const directory of [...actualDirs].sort()) {
+    if (!expectedDirs.has(directory)) {
+      throw new Error(`Unexpected bundle directory: ${directory}`);
+    }
+  }
+  for (const directory of [...expectedDirs].sort()) {
+    if (!actualDirs.has(directory)) {
+      throw new Error(`Missing bundle directory: ${directory}`);
+    }
+  }
+}
+
+async function validatePackageIdentity(bundleDir, manifest) {
+  let packageJson;
+  try {
+    packageJson = JSON.parse(await fs.readFile(path.join(bundleDir, 'package.json'), 'utf8'));
+  } catch (error) {
+    throw new Error(`Bundle package.json is invalid: ${error.message}`);
+  }
+  if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
+    throw new Error('Bundle package.json must be an object');
+  }
+  if (packageJson.name !== manifest.name) {
+    throw new Error(
+      `Bundle package name ${String(packageJson.name)} does not match manifest ${manifest.name}`
+    );
+  }
+  if (packageJson.version !== manifest.version) {
+    throw new Error(
+      `Bundle package version ${String(packageJson.version)} does not match manifest ${manifest.version}`
+    );
+  }
+}
+
+export async function validateBundleManifest({ bundleDir, expectedVersion } = {}) {
   const manifest = await readBundleManifest(bundleDir);
 
   if (manifest.bundleFormatVersion !== 1) {
@@ -99,7 +179,6 @@ export async function validateBundle({ bundleDir, expectedVersion } = {}) {
   }
 
   const seen = new Set();
-  const verifiedFiles = [];
   for (const entry of manifest.files) {
     assertSafePath(entry?.path);
     if (seen.has(entry.path)) {
@@ -109,18 +188,32 @@ export async function validateBundle({ bundleDir, expectedVersion } = {}) {
     if (!SHA256_PATTERN.test(entry.sha256 || '')) {
       throw new Error(`Bundle entry has an invalid SHA256: ${entry.path}`);
     }
-    const file = await lstatBundleFile(absoluteBundleDir, entry.path);
-    const actualSha256 = sha256(await fs.readFile(file));
-    if (actualSha256 !== entry.sha256) {
-      throw new Error(`Bundle file SHA256 mismatch: ${entry.path}`);
-    }
-    verifiedFiles.push({ path: entry.path, sha256: entry.sha256 });
   }
 
   for (const required of REQUIRED_FILES) {
     if (!seen.has(required)) {
       throw new Error(`Missing required runtime entry point: ${required}`);
     }
+  }
+
+  return manifest;
+}
+
+export async function validateBundle({ bundleDir, expectedVersion } = {}) {
+  const manifest = await validateBundleManifest({ bundleDir, expectedVersion });
+  const absoluteBundleDir = path.resolve(bundleDir);
+  const tree = await readBundleTree(absoluteBundleDir);
+  assertExactTree(manifest, tree);
+  await validatePackageIdentity(absoluteBundleDir, manifest);
+
+  const filesByPath = new Map(tree.files.map((entry) => [entry.path, entry.absolutePath]));
+  const verifiedFiles = [];
+  for (const entry of manifest.files) {
+    const actualSha256 = sha256(await fs.readFile(filesByPath.get(entry.path)));
+    if (actualSha256 !== entry.sha256) {
+      throw new Error(`Bundle file SHA256 mismatch: ${entry.path}`);
+    }
+    verifiedFiles.push({ path: entry.path, sha256: entry.sha256 });
   }
 
   verifiedFiles.sort((left, right) => left.path.localeCompare(right.path));

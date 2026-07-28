@@ -39,6 +39,10 @@ const candidate = await createBundleRuntime({
 
 Use `bundle:validate` for a released artifact and `validate` for a source checkout. Central validation does not choose application fallback or promotion. If candidate creation fails, the already-loaded current runtime remains usable.
 
+After downloading an archive from a trusted Release, verify its SHA256 against trusted checksum data obtained outside the archive before executing any archived code, including the bundled CLI. `bundle:validate` is an integrity check: it compares the manifest to the exact file and directory tree, rejects extra files, empty directories, and symbolic links, and verifies file hashes and `package.json` identity. It does not establish artifact authenticity by itself.
+
+`createBundleRuntime({ validate: false })` is only for an already-trusted immutable local Bundle. It skips the actual-tree and file-content hash checks only; manifest format and structure, hash-field shapes, capability summaries, `expectedVersion`, and module-version equality remain enforced.
+
 ## Direct routing for Chinese public-sector sites
 
 Chinese government, government-department, and public-institution targets require a direct route even when `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, or a global system proxy is configured. Every consuming application must enforce this in its network layer with an explicit direct dispatcher or complete `NO_PROXY` coverage for all target hosts. It must never silently fall back to a proxy and must emit an application-visible diagnostic when the direct route fails.

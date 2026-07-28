@@ -2,17 +2,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import {
-  buildBundle,
-  detectCapabilities,
-  extract,
-  findCapabilitiesForUrl,
-  getCatalog,
-  packContribution,
-  validateBundle,
-  validateCatalog
-} from '../src/index.mjs';
-
 function parseArgs(values) {
   const options = {};
   for (let index = 0; index < values.length; index += 1) {
@@ -51,6 +40,24 @@ async function main() {
   const [command, ...rest] = process.argv.slice(2);
   const options = parseArgs(rest);
 
+  if (command === 'bundle:validate') {
+    const { validateBundle } = await import('../src/bundle-validation.mjs');
+    return validateBundle({
+      bundleDir: path.resolve(options.bundle || ''),
+      expectedVersion: options.expectedVersion
+    });
+  }
+
+  const {
+    buildBundle,
+    detectCapabilities,
+    extract,
+    findCapabilitiesForUrl,
+    getCatalog,
+    packContribution,
+    validateCatalog
+  } = await import('../src/index.mjs');
+
   if (command === 'catalog') {
     if (options.url) {
       return { url: options.url, matches: await findCapabilitiesForUrl(options.url) };
@@ -73,12 +80,6 @@ async function main() {
   }
   if (command === 'bundle') {
     return buildBundle({ outputDir: path.resolve(options.output || 'dist/bundle') });
-  }
-  if (command === 'bundle:validate') {
-    return validateBundle({
-      bundleDir: path.resolve(options.bundle || ''),
-      expectedVersion: options.expectedVersion
-    });
   }
   if (command === 'contribution:pack') {
     return packContribution({

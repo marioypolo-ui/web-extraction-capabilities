@@ -38,8 +38,127 @@ function attribute(attributes, name) {
   return decodeEntities(match?.[1] ?? match?.[2] ?? match?.[3] ?? '');
 }
 
+function readTagAt(value, index) {
+  const match = /^<(\/?)([a-z][\w:-]*)(?=[\s/>])/i.exec(value.slice(index));
+  if (!match) {
+    return null;
+  }
+
+  let quote = '';
+  for (let cursor = index + match[0].length; cursor < value.length; cursor += 1) {
+    const character = value[cursor];
+    if (quote) {
+      if (character === quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === '>') {
+      const attributes = value.slice(index + match[0].length, cursor);
+      return {
+        attributes,
+        closing: Boolean(match[1]),
+        endIndex: cursor,
+        selfClosing: /\/\s*$/.test(attributes),
+        tagName: match[2].toLowerCase()
+      };
+    }
+  }
+  return null;
+}
+
+function rawTextEnd(value, lowerValue, tagName, startIndex) {
+  const marker = `</${tagName}`;
+  let index = startIndex;
+
+  while (index < value.length) {
+    const candidate = lowerValue.indexOf(marker, index);
+    if (candidate === -1) {
+      return value.length;
+    }
+    const tag = readTagAt(value, candidate);
+    if (tag?.closing && tag.tagName === tagName) {
+      return tag.endIndex + 1;
+    }
+    index = candidate + marker.length;
+  }
+  return value.length;
+}
+
 function maskHtmlComments(value) {
-  return String(value || '').replace(/<!--[\s\S]*?-->/g, (comment) => ' '.repeat(comment.length));
+  const source = String(value || '');
+  const lowerSource = source.toLowerCase();
+  const masked = source.split('');
+  let index = 0;
+
+  while (index < source.length) {
+    if (lowerSource.startsWith('<!--', index)) {
+      const commentEnd = lowerSource.indexOf('-->', index + 4);
+      if (commentEnd !== -1) {
+        masked.fill(' ', index, commentEnd + 3);
+        index = commentEnd + 3;
+        continue;
+      }
+      index += 4;
+      continue;
+    }
+    if (source[index] !== '<') {
+      index += 1;
+      continue;
+    }
+
+    const tag = readTagAt(source, index);
+    if (!tag) {
+      index += 1;
+      continue;
+    }
+    index = tag.endIndex + 1;
+    if (
+      !tag.closing &&
+      !tag.selfClosing &&
+      (tag.tagName === 'script' || tag.tagName === 'style')
+    ) {
+      index = rawTextEnd(source, lowerSource, tag.tagName, index);
+    }
+  }
+
+  return masked.join('');
+}
+
+function elementAttributes(value) {
+  const source = String(value || '');
+  const lowerSource = source.toLowerCase();
+  const results = [];
+  let index = 0;
+
+  while (index < source.length) {
+    const tagStart = source.indexOf('<', index);
+    if (tagStart === -1) {
+      break;
+    }
+    const tag = readTagAt(source, tagStart);
+    if (!tag) {
+      index = tagStart + 1;
+      continue;
+    }
+    index = tag.endIndex + 1;
+    if (!tag.closing) {
+      results.push(tag.attributes);
+    }
+    if (
+      !tag.closing &&
+      !tag.selfClosing &&
+      (tag.tagName === 'script' || tag.tagName === 'style')
+    ) {
+      index = rawTextEnd(source, lowerSource, tag.tagName, index);
+    }
+  }
+
+  return results;
 }
 
 function hasNavigationAttributes(attributes) {
@@ -106,15 +225,15 @@ function hasNavigationAncestor(html, blockIndex) {
   });
 }
 
-function isNavigationActionControl({ block, attributes, title, navigationContext }) {
-  const handler = attribute(attributes, 'onclick');
+function isNavigationActionControl({ block, attributesList, title, navigationContext }) {
   const hasTime = /<time\b/i.test(block);
   const hasDate = Boolean(parseLikelyPublicationDate(textContent(block)));
-  const hasDataId = Boolean(
-    attribute(attributes, 'data-id') ||
-      attribute(block.match(/^<[^>]+/i)?.[0] || '', 'data-id')
+  const hasDataId = attributesList.some((attributes) => attribute(attributes, 'data-id'));
+  const hasContentHandler = attributesList.some(
+    (attributes) =>
+      CONTENT_HANDLER_PATTERN.test(attribute(attributes, 'href')) ||
+      CONTENT_HANDLER_PATTERN.test(attribute(attributes, 'onclick'))
   );
-  const hasContentHandler = CONTENT_HANDLER_PATTERN.test(handler);
   const hasRecordMetadata = hasTime || hasDate || hasDataId || hasContentHandler;
 
   if (hasRecordMetadata) {
@@ -139,6 +258,7 @@ export function extractStaticHtml({ html, url, config = {} }) {
     }
     const attributes = anchor[1];
     const title = chooseTitle(attributes, anchor[2]);
+    const attributesList = elementAttributes(block);
     const blockAttributes = /^<(?:li|article)\b([^>]*)>/i.exec(block)?.[1] || '';
     let href = attribute(attributes, 'href');
     const actionOnly = !href || href === '#' || /^javascript:/i.test(href);
@@ -148,7 +268,7 @@ export function extractStaticHtml({ html, url, config = {} }) {
         if (
           isNavigationActionControl({
             block,
-            attributes,
+            attributesList,
             title,
             navigationContext:
               hasNavigationAttributes(blockAttributes) ||

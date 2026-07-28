@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import { buildBundle, LIBRARY_VERSION, validateBundle } from '../src/index.mjs';
+
+const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
 async function makeBundle() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'web-cap-bundle-validation-'));
@@ -23,6 +26,21 @@ async function writeManifest(bundleDir, manifest) {
     `${JSON.stringify(manifest, null, 2)}\n`,
     'utf8'
   );
+}
+
+async function rewritePackageIdentity(bundleDir, changes) {
+  const packagePath = path.join(bundleDir, 'package.json');
+  const packageJson = JSON.parse(await fs.readFile(packagePath, 'utf8'));
+  Object.assign(packageJson, changes);
+  const content = `${JSON.stringify(packageJson, null, 2)}\n`;
+  await fs.writeFile(packagePath, content, 'utf8');
+
+  const manifest = await readManifest(bundleDir);
+  manifest.files.find((entry) => entry.path === 'package.json').sha256 = sha256(content);
+  manifest.bundleSha256 = sha256(
+    JSON.stringify([...manifest.files].sort((left, right) => left.path.localeCompare(right.path)))
+  );
+  await writeManifest(bundleDir, manifest);
 }
 
 test('generated runtime bundle validates without source fixtures or tests', async () => {
@@ -147,6 +165,51 @@ test('rejects symlinked bundle directories when supported by the platform', asyn
   }
 
   await assert.rejects(validateBundle({ bundleDir }), /links are not allowed/i);
+});
+
+test('rejects files that are present but absent from the bundle manifest', async () => {
+  const bundleDir = await makeBundle();
+  await fs.writeFile(path.join(bundleDir, 'unexpected.txt'), 'not in manifest\n', 'utf8');
+
+  await assert.rejects(validateBundle({ bundleDir }), /unexpected bundle file/i);
+});
+
+test('rejects empty directories that are absent from the bundle manifest tree', async () => {
+  const bundleDir = await makeBundle();
+  await fs.mkdir(path.join(bundleDir, 'empty-directory'));
+
+  await assert.rejects(validateBundle({ bundleDir }), /unexpected bundle directory/i);
+});
+
+test('rejects extra symbolic links when supported by the platform', async () => {
+  const bundleDir = await makeBundle();
+  const targetDir = path.join(path.dirname(bundleDir), 'link-target');
+  const linkPath = path.join(bundleDir, 'unexpected-link');
+  await fs.mkdir(targetDir);
+  try {
+    await fs.symlink(targetDir, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch (error) {
+    if (process.platform === 'win32' && ['EPERM', 'EACCES'].includes(error.code)) {
+      return;
+    }
+    throw error;
+  }
+
+  await assert.rejects(validateBundle({ bundleDir }), /links are not allowed/i);
+});
+
+test('rejects a package name that differs from the bundle manifest', async () => {
+  const bundleDir = await makeBundle();
+  await rewritePackageIdentity(bundleDir, { name: '@example/wrong-package' });
+
+  await assert.rejects(validateBundle({ bundleDir }), /package name .* does not match/i);
+});
+
+test('rejects a package version that differs from the bundle manifest', async () => {
+  const bundleDir = await makeBundle();
+  await rewritePackageIdentity(bundleDir, { version: '9.9.9' });
+
+  await assert.rejects(validateBundle({ bundleDir }), /package version .* does not match/i);
 });
 
 test('rejects bundles with an invalid aggregate SHA256', async () => {

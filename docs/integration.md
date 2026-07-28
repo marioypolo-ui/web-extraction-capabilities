@@ -88,6 +88,10 @@ const candidate = await createBundleRuntime({
 
 当前版本和候选版本可以同时加载，由应用负责影子比较、回退和晋升。`bundle:validate` 用于已发布 Bundle，`validate` 用于源码检出；中央校验不替应用作切换决策。候选版本创建失败不得破坏已加载的当前运行时。
 
+从可信 Release 下载归档时，先使用归档外、来自可信 Release 渠道的 SHA256 校验整个归档；完成前不得执行归档内任何代码，包括 Bundle 自带 CLI。解压后再运行 `bundle:validate`。该命令是完整性检查而非来源认证：它要求除根 `bundle-manifest.json` 外的实际文件集合与 manifest 完全一致，实际目录与 manifest 路径推导目录完全一致，拒绝额外文件、空目录和符号链接，并核对文件 hash、总 hash 及 `package.json` 名称/版本。
+
+`createBundleRuntime({ validate: false })` 只适用于已经可信且不可变的本地 Bundle。它只跳过实际树和文件内容 hash 校验，不跳过 manifest 解析、Bundle 格式与结构、hash 字段形状、能力摘要、`expectedVersion` 或模块版本一致性校验。
+
 独立示例：
 
 ```powershell

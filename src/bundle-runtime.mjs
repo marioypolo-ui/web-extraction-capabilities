@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { readBundleManifest, validateBundle } from './bundle-validation.mjs';
+import { validateBundle, validateBundleManifest } from './bundle-validation.mjs';
 
 const REQUIRED_APIS = [
   'getCatalog',
@@ -23,12 +23,7 @@ export async function createBundleRuntime({
   const absoluteBundleDir = path.resolve(bundleDir);
   const manifest = validate
     ? await validateBundle({ bundleDir: absoluteBundleDir, expectedVersion })
-    : await readBundleManifest(absoluteBundleDir);
-  if (expectedVersion && manifest.version !== expectedVersion) {
-    throw new Error(
-      `Bundle version ${manifest.version} does not match expected version ${expectedVersion}`
-    );
-  }
+    : await validateBundleManifest({ bundleDir: absoluteBundleDir, expectedVersion });
   const moduleUrl = pathToFileURL(path.join(absoluteBundleDir, 'src', 'index.mjs')).href;
   const runtimeModule = await import(moduleUrl);
 

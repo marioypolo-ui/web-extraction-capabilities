@@ -118,11 +118,11 @@ test('bundle:validate CLI validates a generated standalone bundle', async () => 
   assert.equal(JSON.parse(validation.stdout).version, LIBRARY_VERSION);
 });
 
-test('bundle:validate CLI returns a JSON failure for a corrupted standalone bundle', async () => {
+test('bundle:validate CLI reports invalid runtime syntax as a JSON integrity failure', async () => {
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'web-cap-cli-bundle-corrupt-'));
   const output = path.join(root, 'bundle');
   await buildBundle({ outputDir: output });
-  fs.appendFileSync(path.join(output, 'src', 'index.mjs'), '\n// corrupted\n', 'utf8');
+  fs.writeFileSync(path.join(output, 'src', 'index.mjs'), 'export const broken = ;\n', 'utf8');
 
   const result = spawnSync(
     process.execPath,
@@ -138,6 +138,7 @@ test('bundle:validate CLI returns a JSON failure for a corrupted standalone bund
   );
 
   assert.notEqual(result.status, 0);
+  assert.equal(result.stderr, '');
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.error.code, 'COMMAND_FAILED');
   assert.match(parsed.error.message, /SHA256 mismatch/i);

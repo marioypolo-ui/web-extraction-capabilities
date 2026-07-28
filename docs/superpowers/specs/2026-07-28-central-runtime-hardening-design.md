@@ -33,20 +33,37 @@ Add `validateBundle({ bundleDir, expectedVersion? })` and a CLI command:
 web-extract bundle:validate --bundle <directory> [--expected-version <version>]
 ```
 
-Bundle validation reads only `bundle-manifest.json` and validates:
+Bundle validation uses only the released Bundle, beginning with
+`bundle-manifest.json`, and validates:
 
 - `bundleFormatVersion === 1`;
 - optional expected version equality;
-- safe relative paths with no traversal, absolute paths, duplicates, or links;
+- safe relative paths with no traversal, absolute paths, or duplicates;
+- the actual file set, excluding the root `bundle-manifest.json`, exactly equals
+  the manifest file set;
+- the actual directory set exactly equals the directories implied by manifest
+  paths, so extra files and empty directories are rejected;
+- every tree entry is a regular file or directory and no symbolic link is
+  allowed;
 - every listed file exists and matches its SHA256;
 - the sorted file list reproduces `bundleSha256`;
 - required runtime entry points exist;
-- `catalogSha256` and capability summary have valid shapes.
+- `catalogSha256` and capability summary have valid shapes;
+- the bundled `package.json` name and version equal the manifest name and
+  version.
 
 It intentionally does not require source-only fixtures and tests omitted from the
 runtime artifact. `buildBundle` validates its output before returning. Release CI
 validates the packaged artifact with `bundle:validate`, while source CI continues
-to run `validate`.
+to run `validate`. This self-validation is an integrity check, not proof of
+artifact authenticity. A consumer must verify the downloaded archive SHA256
+against checksum data obtained from the trusted Release before executing any
+code from that archive, including its bundled CLI.
+
+The CLI parses the command before loading the central runtime. `bundle:validate`
+dynamically imports only `src/bundle-validation.mjs`; all other commands then
+load `src/index.mjs`. A damaged runtime index therefore cannot prevent the
+bundled validator from returning its normal JSON error envelope.
 
 ## Isolated Runtime Instances
 
@@ -76,6 +93,11 @@ their absolute module URLs differ. Bundle directories are treated as immutable;
 overwriting a loaded directory is unsupported. Consumers can run current and
 candidate versions against identical inputs without changing process-global state.
 
+`validate: false` is restricted to an already-trusted immutable local Bundle. It
+skips actual-tree and file-content hash verification only. Manifest parsing,
+format and structure validation, hash-field shapes, capability-summary validation,
+`expectedVersion`, and module-to-manifest version equality remain mandatory.
+
 The factory exposes only public central APIs. It does not encode the tender
 application's fallback-union policy or import application code.
 
@@ -88,6 +110,8 @@ The static parser classifies every `<li>` or `<article>` containing an unresolve
 - derive the visible or metadata title and record evidence first;
 - treat a publication date, `<time>`, `data-id`, or a content handler such as
   `open`, `show`, `view`, `detail`, `article`, or `notice` as record evidence;
+- collect action evidence from `href`, `onclick`, and `data-id` attributes on
+  the selected anchor, the block root, and every real descendant element;
 - always warn when record evidence exists, including inside navigation contexts;
 - when no record evidence exists, ignore an empty control or a control with a
   known navigation label;
@@ -100,10 +124,13 @@ The static parser classifies every `<li>` or `<article>` containing an unresolve
   must not become a silent omission.
 
 Structural ancestry is computed from HTML with only complete, closed
-`<!-- ... -->` comments masked. Each closed comment is replaced with equal-length
-spaces so block indexes remain stable; tag-like text inside comments therefore
-cannot create false ancestors. An unclosed `<!--` marker is not treated as a
-comment spanning the remainder of the document, so it cannot hide later DOM.
+`<!-- ... -->` comments found in the HTML data state masked. The scanner skips
+ordinary tags with quote-aware attribute handling and skips `script` and `style`
+raw-text, so marker-like strings in separate scripts cannot be paired across real
+DOM. Each closed comment is replaced with equal-length spaces so block indexes
+remain stable; tag-like text inside comments therefore cannot create false
+ancestors. An unclosed `<!--` marker is not treated as a comment spanning the
+remainder of the document, so it cannot hide later DOM.
 
 These are generic structural rules with no Guangxi University of Science and
 Technology special case. The site remains a verified `fixed-dns-host` target, and
@@ -126,11 +153,17 @@ Add tests for:
 - a generated Bundle passing `validateBundle`;
 - corrupted file SHA256, path traversal, duplicate path, unsupported format, and
   missing runtime entry point being rejected;
+- extra files, empty directories, extra links, and package identity mismatches
+  being rejected;
 - `bundle:validate` succeeding on a generated artifact without source fixtures or
   tests;
+- a bundled CLI returning a parseable `COMMAND_FAILED` integrity error even when
+  `src/index.mjs` has invalid syntax;
 - two Bundle directories returning independent runtime metadata and extraction
   results;
 - a failed candidate runtime leaving the current runtime usable;
+- `validate: false` still rejecting unsupported formats, malformed capability
+  summaries, malformed hash fields, and expected-version mismatches;
 - action-only pagination producing no warning;
 - an action-only record with date, `data-id`, or a content handler still producing
   `ACTION_LINK_REQUIRES_CONFIGURATION`;
@@ -141,6 +174,7 @@ Add tests for:
   without overriding record evidence;
 - closed comment pseudo-tags and unclosed comment markers not corrupting
   structural ancestry or hiding later content;
+- script raw-text comment markers not masking intervening real DOM;
 - existing static, fixed-DNS, catalog, bundle, contribution, and documentation
   tests remaining green with no skip or todo.
 

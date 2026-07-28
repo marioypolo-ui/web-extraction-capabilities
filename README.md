@@ -108,6 +108,10 @@ const candidate = await createBundleRuntime({
 
 当前版本和候选版本可以同时加载，由应用比较结果。`bundle:validate` 用于发布 Bundle，`validate` 用于源码检出；中央校验不决定应用的回退或晋升策略。候选版本创建失败时，已加载的当前运行时仍可继续使用。详见[升级与回滚](docs/upgrades.md)。
 
+从可信 Release 下载归档后，应用必须先使用归档外取得的可信 SHA256 校验归档，再执行归档内任何代码，包括 Bundle 自带 CLI。`bundle:validate` 是完整性检查：它精确核对 manifest 与实际文件/目录、拒绝额外文件、空目录和符号链接，并核对文件 hash 与 `package.json` 身份；它不能单独证明归档来源可信。
+
+`createBundleRuntime({ validate: false })` 仅供已经可信且不可变的本地 Bundle 使用，只跳过实际文件树和文件内容 hash 校验；manifest 的格式、结构、hash 字段形状、能力摘要、`expectedVersion` 以及模块版本一致性仍会校验。
+
 ## 国内政务网站直连
 
 中国政府、政府部门和行政事业单位网站即使存在 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 或系统全局代理，也必须直连。每个调用应用必须在自己的网络层使用显式 direct dispatcher，或为全部目标主机提供完整 `NO_PROXY` 覆盖；禁止直连失败后静默改走代理，并必须输出应用可见的失败诊断。

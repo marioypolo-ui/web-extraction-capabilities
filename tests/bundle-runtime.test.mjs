@@ -23,6 +23,13 @@ async function makeBundle(name) {
   return bundleDir;
 }
 
+async function mutateManifest(bundleDir, mutate) {
+  const manifestPath = path.join(bundleDir, 'bundle-manifest.json');
+  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+  mutate(manifest);
+  await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+}
+
 test('loads immutable bundle runtimes in isolation', async () => {
   const currentDir = await makeBundle('current');
   const candidateDir = await makeBundle('candidate');
@@ -67,12 +74,47 @@ test('validate: false requires a matching expected version', async () => {
   assert.equal(runtime.version, LIBRARY_VERSION);
 });
 
+test('validate: false still rejects unsupported manifest formats', async () => {
+  const bundleDir = await makeBundle('unsupported-format');
+  await mutateManifest(bundleDir, (manifest) => {
+    manifest.bundleFormatVersion = 2;
+  });
+
+  await assert.rejects(
+    createBundleRuntime({ bundleDir, validate: false }),
+    /unsupported bundle format/i
+  );
+});
+
+test('validate: false still rejects malformed capability summaries', async () => {
+  const bundleDir = await makeBundle('malformed-summary');
+  await mutateManifest(bundleDir, (manifest) => {
+    manifest.capabilities[0].verifiedTargets = 'not-an-array';
+  });
+
+  await assert.rejects(
+    createBundleRuntime({ bundleDir, validate: false }),
+    /verifiedTargets must be an array/i
+  );
+});
+
+test('validate: false still rejects malformed manifest hashes', async () => {
+  const bundleDir = await makeBundle('malformed-hash');
+  await mutateManifest(bundleDir, (manifest) => {
+    manifest.bundleSha256 = 'not-a-sha256';
+  });
+
+  await assert.rejects(
+    createBundleRuntime({ bundleDir, validate: false }),
+    /invalid bundleSha256/i
+  );
+});
+
 test('validate: false rejects a manifest version that differs from the bundle module', async () => {
   const bundleDir = await makeBundle('manifest-version-mismatch');
-  const manifestPath = path.join(bundleDir, 'bundle-manifest.json');
-  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
-  manifest.version = '9.9.9';
-  await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  await mutateManifest(bundleDir, (manifest) => {
+    manifest.version = '9.9.9';
+  });
 
   await assert.rejects(
     createBundleRuntime({ bundleDir, validate: false }),

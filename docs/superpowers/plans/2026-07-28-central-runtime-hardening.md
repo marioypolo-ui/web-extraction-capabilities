@@ -8,6 +8,35 @@
 
 **Tech Stack:** Node.js 22+ ESM, `node:test`, `node:assert`, Node built-ins (`fs/promises`, `crypto`, `path`, `url`), GitHub Actions.
 
+## Final Review Amendments
+
+These final-fix requirements supersede conflicting implementation sketches later
+in this historical plan:
+
+- Replace regex-only comment masking with a dependency-free, quote-aware HTML
+  state scan. Recognize complete comments only in the data state and skip
+  ordinary tags plus `script`/`style` raw-text.
+- Derive action-record evidence from all real element `href`, `onclick`, and
+  `data-id` attributes in the block, including the anchor and block root. Date
+  and `<time>` evidence remain unchanged and always override navigation
+  suppression.
+- Full `validateBundle` compares the actual file and directory sets exactly with
+  the manifest-derived tree, excluding only the root `bundle-manifest.json`, and
+  rejects extra files, empty directories, every symbolic link, and mismatched
+  bundled package name/version.
+- The bundled CLI parses `bundle:validate` before importing the runtime and loads
+  only `src/bundle-validation.mjs` for that command. Other commands dynamically
+  load `src/index.mjs`.
+- The internal manifest validator always checks format, structure, hash-field
+  shapes, capability summaries, and `expectedVersion`.
+  `createBundleRuntime({ validate: false })` uses that validator and skips only
+  actual-tree and file-content hash checks. Only `validateBundle` remains
+  exported from the public index.
+- Bundle self-validation establishes internal integrity, not authenticity.
+  Before running a downloaded Bundle's own CLI, consumers first verify the
+  Release archive SHA256 using checksum data obtained through the trusted
+  Release channel.
+
 ## Global Constraints
 
 - Priority is no missed records and no silent failure before reducing false positives.
@@ -18,18 +47,25 @@
 - Consuming applications own route enforcement: they must bypass proxies with an explicit direct dispatcher or complete `NO_PROXY` coverage, must not silently fall back to a proxy, and must diagnose direct-route failures.
 - Source `validate` remains strict about source-only fixtures, tests, and evidence.
 - Runtime Bundle validation must work without source-only fixtures and tests.
+- Runtime Bundle validation must reject any actual-tree entry not represented by
+  the manifest and any manifest-derived directory absent from the actual tree.
 - Bundle directories are immutable after loading; consumers use a new directory for every candidate version.
+- A trusted Release archive SHA256 must be verified before any code from a
+  downloaded Bundle is executed.
+- `validate: false` skips actual-tree and file hash checks only; manifest format,
+  structure, hash-field shapes, capability summaries, and expected version remain
+  mandatory.
 - New behavior requires tests; skipped and todo tests are forbidden.
 - Release version is `0.1.3`; Bundle format remains `1`.
 
 ## File Structure
 
-- `src/static-html.mjs`: classify unresolved action-only blocks and emit diagnostics only for possible records.
-- `src/bundle-validation.mjs`: read and validate a released Bundle manifest, paths, files, hashes, format, and required entry points.
+- `src/static-html.mjs`: scan HTML data/raw-text state, classify unresolved action-only blocks, and emit diagnostics only for possible records.
+- `src/bundle-validation.mjs`: validate the manifest contract and, for full validation, the exact actual tree, package identity, files, hashes, format, and required entry points.
 - `src/bundle.mjs`: build a Bundle with the library version and validate the completed output.
 - `src/bundle-runtime.mjs`: load one validated immutable Bundle directory and expose only its public runtime API.
 - `src/index.mjs`: export the new validation and runtime factory APIs.
-- `bin/web-extract.mjs`: add `bundle:validate`.
+- `bin/web-extract.mjs`: route `bundle:validate` through the minimal validation module before dynamically importing the full runtime for other commands.
 - `tests/extract.test.mjs`: cover navigation-control suppression and preservation of possible-record diagnostics.
 - `tests/bundle-validation.test.mjs`: cover Bundle trust-boundary failures.
 - `tests/bundle-runtime.test.mjs`: cover independent current/candidate runtimes and failure isolation.
