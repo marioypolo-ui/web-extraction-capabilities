@@ -81,31 +81,33 @@ application's fallback-union policy or import application code.
 
 ## Action-link Diagnostic Precision
 
-The current static parser warns for every `<li>` or `<article>` containing an
-unresolved `javascript:`, `onclick`, or `data-id` link. This can classify paging
-or navigation controls as possible missing records.
+The static parser classifies every `<li>` or `<article>` containing an unresolved
+`javascript:`, `onclick`, or `data-id` link before emitting
+`ACTION_LINK_REQUIRES_CONFIGURATION`. The generic decision order is:
 
-Before emitting `ACTION_LINK_REQUIRES_CONFIGURATION`, derive the visible or
-metadata title and classify the block:
+- derive the visible or metadata title and record evidence first;
+- treat a publication date, `<time>`, `data-id`, or a content handler such as
+  `open`, `show`, `view`, `detail`, `article`, or `notice` as record evidence;
+- always warn when record evidence exists, including inside navigation contexts;
+- when no record evidence exists, ignore an empty control or a control with a
+  known navigation label;
+- when no record evidence exists, ignore a control inside a semantic `<nav>` or
+  an ancestor whose `class`, `id`, or `role` contains an independent
+  `nav`/`navigation`/`menu`/`header`/`breadcrumb`/`pagination`/`pager` token;
+- apply the same navigation-token check to the current `<li>` or `<article>` root,
+  not only its ancestors;
+- warn for every remaining titled action-only block, because an unknown action
+  must not become a silent omission.
 
-- ignore known navigation labels such as first/previous/next/last page and their
-  English equivalents;
-- ignore explicit pagination handlers such as `goPage(2)` or `changePage(2)` when
-  the block has no record metadata;
-- warn when the block has a publication date or `<time>`;
-- warn when it has `data-id`;
-- warn when the action handler indicates content navigation such as
-  `open`, `show`, `view`, `detail`, `article`, or `notice`;
-- warn for any remaining action-only block with a non-navigation title, because an
-  unknown action must not become a silent omission;
-- skip only empty controls and controls positively identified as navigation.
+Structural ancestry is computed from HTML with only complete, closed
+`<!-- ... -->` comments masked. Each closed comment is replaced with equal-length
+spaces so block indexes remain stable; tag-like text inside comments therefore
+cannot create false ancestors. An unclosed `<!--` marker is not treated as a
+comment spanning the remainder of the document, so it cannot hide later DOM.
 
-This is a generic structural rule, not a domain-specific exception. A real
-announcement-like action fixture must continue to produce the diagnostic, while a
-pagination fixture must not. An unknown custom action with a non-navigation title
-must also continue to warn. The Guangxi University of Science and Technology site
-remains a verified `fixed-dns-host` target; its ordinary announcement links
-continue to parse normally.
+These are generic structural rules with no Guangxi University of Science and
+Technology special case. The site remains a verified `fixed-dns-host` target, and
+its ordinary announcement links continue to parse normally.
 
 ## Errors And Compatibility
 
@@ -133,6 +135,12 @@ Add tests for:
 - an action-only record with date, `data-id`, or a content handler still producing
   `ACTION_LINK_REQUIRES_CONFIGURATION`;
 - an unknown action with a non-navigation title still producing the diagnostic;
+- empty controls and record-free controls in semantic or tokenized navigation
+  contexts producing no action-link diagnostic;
+- navigation tokens on the current `<li>` or `<article>` root being recognized
+  without overriding record evidence;
+- closed comment pseudo-tags and unclosed comment markers not corrupting
+  structural ancestry or hiding later content;
 - existing static, fixed-DNS, catalog, bundle, contribution, and documentation
   tests remaining green with no skip or todo.
 

@@ -151,6 +151,24 @@ node --test tests/extract.test.mjs
 
 Expected: all extraction tests pass; pagination/mobile controls have only `ZERO_RECORDS`, while all four possible-record cases retain `ACTION_LINK_REQUIRES_CONFIGURATION`.
 
+**Post-implementation precision update (verified on the current branch):**
+
+- Record evidence (`<time>`, a parsed publication date, `data-id`, or a content
+  handler) always takes priority and preserves
+  `ACTION_LINK_REQUIRES_CONFIGURATION`, even inside navigation containers.
+- Without record evidence, empty controls and known paging/mobile controls may be
+  ignored.
+- Without record evidence, controls may also be ignored when they are inside
+  `<nav>` or a `class`/`id`/`role` context containing an independent
+  `nav`/`navigation`/`menu`/`header`/`breadcrumb`/`pagination`/`pager` token.
+  The context check includes the current `<li>` or `<article>` root as well as its
+  ancestors.
+- Structural ancestry masks only complete, closed HTML comments and replaces
+  them with equal-length spaces to preserve indexes. Comment pseudo-tags cannot
+  become ancestors, and an unclosed `<!--` marker does not consume later DOM.
+- These are generic structural rules. No GXUST-specific suppression or
+  classification was added.
+
 - [ ] **Step 5: Commit the diagnostic fix**
 
 ```powershell
@@ -706,21 +724,35 @@ node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expe
 
 Expected: every command exits `0`; no tests are skipped or todo; the final JSON reports version `0.1.3` and Bundle format `1`.
 
-- [ ] **Step 7: Regress the Guangxi University of Science and Technology page**
+- [x] **Step 7: Regress the Guangxi University of Science and Technology page**
 
-Fetch the live page through the repository's approved web-access workflow with direct domestic routing, save it only under the system temporary directory, then run the v0.1.3 static extraction against:
+Historical verification procedure: fetch the live page through the repository's approved web-access workflow with direct domestic routing, save it only under the system temporary directory, then run the v0.1.3 static extraction against:
 
 ```text
 https://www.gxust.edu.cn/xwzx/zbgs.htm
 ```
 
-Verify all of the following:
+Verification criteria:
 
 - ordinary announcement links still produce records;
 - the record count is not lower than the pre-fix observed count of `10`;
 - neither `手机版` nor pagination `跳转` emits `ACTION_LINK_REQUIRES_CONFIGURATION`;
 - any unrelated unresolved possible-record action remains visible as a diagnostic;
 - no live HTML, credentials, cookies, or IP configuration is committed.
+
+Verified by the control agent on 2026-07-28:
+
+- `curl.exe --noproxy "*"` fetched the page by a direct route into the system
+  temporary directory; the response was `27,030` bytes.
+- Current v0.1.3 HEAD produced `52` total records, including `10` dated
+  announcement records.
+- The first three announcements had normal titles, URLs, and publication dates.
+- Extraction emitted `0` `ACTION_LINK_REQUIRES_CONFIGURATION` diagnostics and
+  the diagnostics array was empty.
+- The live page reported no unrelated unresolved possible-record action; existing
+  synthetic regressions continue to verify that record evidence preserves the
+  diagnostic.
+- No live HTML, IP configuration, Cookie, or credential was committed.
 
 - [ ] **Step 8: Commit release readiness**
 
@@ -744,7 +776,10 @@ Expected: the worktree is clean, `git diff --check` is silent, and every changed
 
 ## Success Criteria
 
-- The GXUST page no longer creates a false station failure from mobile/pagination controls.
+- Verified on 2026-07-28: the GXUST direct-route regression produced `52` total
+  records and `10` dated announcement records with `0`
+  `ACTION_LINK_REQUIRES_CONFIGURATION` diagnostics and an empty diagnostics
+  array.
 - Possible announcement actions still emit `ACTION_LINK_REQUIRES_CONFIGURATION`.
 - A generated Bundle validates independently without source-only fixtures or tests.
 - Corruption, unsafe paths, links, format mismatch, and missing runtime entries fail explicitly.
@@ -752,4 +787,7 @@ Expected: the worktree is clean, `git diff --check` is silent, and every changed
 - A failed candidate load does not break the current runtime.
 - Version, docs, CI, and release artifacts consistently identify v0.1.3.
 - Integration guidance makes proxy bypass mandatory for Chinese government/public-institution sites and forbids silent proxy fallback.
-- Full tests, source validation, docs smoke, sensitive audit, Bundle generation, standalone Bundle validation, and live GXUST regression pass.
+- Full tests, source validation, docs smoke, sensitive audit, Bundle generation,
+  standalone Bundle validation, and the live GXUST regression have passed
+  locally. This is release-readiness evidence, not a claim that v0.1.3 has been
+  tagged or published.

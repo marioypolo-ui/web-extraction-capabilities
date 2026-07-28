@@ -19,7 +19,11 @@
 
 Every result includes diagnostics. Applications should persist and surface error and human-required diagnostics immediately.
 
-`ACTION_LINK_REQUIRES_CONFIGURATION` applies only when an action link is a plausible record. Explicit pagination and mobile-view controls are navigation controls and are ignored instead of being reported as unresolved records.
+`ACTION_LINK_REQUIRES_CONFIGURATION` applies only when an unresolved action link is a plausible record. Record evidence such as a publication date, `<time>`, `data-id`, or a content-oriented action handler always takes priority and emits the diagnostic, including inside navigation containers.
+
+Without record evidence, empty controls and known paging/mobile controls may be ignored. A record-free control may also be ignored when it is inside `<nav>` or when an ancestor's `class`, `id`, or `role` contains an independent `nav`, `navigation`, `menu`, `header`, `breadcrumb`, `pagination`, or `pager` token. The same token check applies to the current `<li>` or `<article>` root. Remaining titled action-only blocks stay diagnosed.
+
+Only complete, closed HTML comments are masked during structural ancestry checks, using equal-length spaces to preserve indexes. Tag-like text inside comments cannot create navigation ancestors, and an unclosed `<!--` marker does not hide later DOM. These are generic rules; there is no GXUST-specific suppression.
 
 Chinese government, government-department, and public-institution targets require a direct route even when `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, or a global system proxy is configured. The consuming application's network layer must bypass those proxies with an explicit direct dispatcher or complete `NO_PROXY` coverage.
 
