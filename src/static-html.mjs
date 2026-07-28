@@ -1,6 +1,12 @@
 import { parseLikelyPublicationDate } from './migrated/date-parse.mjs';
 import { diagnostic } from './result.mjs';
 
+const NAVIGATION_TITLE_PATTERN =
+  /^(?:mobile version|\u624b\u673a\u7248|\u8df3\u8f6c|鎵嬫満鐗坾jump|璺宠浆|first|first page|棣栭〉|previous|prev|previous page|涓婁竴椤祙next|next page|涓嬩竴椤祙last|last page|灏鹃〉|鏈〉|绗?\s*\d+\s*椤祙\d+)$/i;
+const PAGINATION_HANDLER_PATTERN =
+  /(?:^|[.\s_])(go|goto|change|turn|jump|set|simple_list_goto)?page(?:_fun)?\s*\(|_simple_list_gotopage_fun\s*\(/i;
+const CONTENT_HANDLER_PATTERN = /(?:open|show|view|detail|article|notice)\w*\s*\(/i;
+
 const ACTION_TITLE_PATTERN = /^(?:点击查看详情|查看详情|详情|more|read more)$/i;
 
 function decodeEntities(value) {
@@ -58,6 +64,23 @@ function resolveActionUrl(block, attributes, config, baseUrl) {
   return new URL(config.actionUrlTemplate.replaceAll('{id}', encodeURIComponent(id)), baseUrl).toString();
 }
 
+function isNavigationActionControl({ block, attributes, title }) {
+  const handler = attribute(attributes, 'onclick');
+  const hasTime = /<time\b/i.test(block);
+  const hasDate = Boolean(parseLikelyPublicationDate(textContent(block)));
+  const hasDataId = Boolean(
+    attribute(attributes, 'data-id') ||
+      attribute(block.match(/^<[^>]+/i)?.[0] || '', 'data-id')
+  );
+  const hasContentHandler = CONTENT_HANDLER_PATTERN.test(handler);
+  const hasRecordMetadata = hasTime || hasDate || hasDataId || hasContentHandler;
+
+  if (hasRecordMetadata) {
+    return false;
+  }
+  return NAVIGATION_TITLE_PATTERN.test(title) || PAGINATION_HANDLER_PATTERN.test(handler);
+}
+
 export function extractStaticHtml({ html, url, config = {} }) {
   const diagnostics = [];
   const records = [];
@@ -71,11 +94,15 @@ export function extractStaticHtml({ html, url, config = {} }) {
       continue;
     }
     const attributes = anchor[1];
+    const title = chooseTitle(attributes, anchor[2]);
     let href = attribute(attributes, 'href');
     const actionOnly = !href || href === '#' || /^javascript:/i.test(href);
     if (actionOnly) {
       href = resolveActionUrl(block, attributes, config, url);
       if (!href) {
+        if (isNavigationActionControl({ block, attributes, title })) {
+          continue;
+        }
         diagnostics.push(
           diagnostic(
             'ACTION_LINK_REQUIRES_CONFIGURATION',
@@ -86,7 +113,6 @@ export function extractStaticHtml({ html, url, config = {} }) {
       }
     }
 
-    const title = chooseTitle(attributes, anchor[2]);
     if (!title) {
       continue;
     }

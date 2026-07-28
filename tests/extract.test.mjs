@@ -46,6 +46,45 @@ test('javascript and onclick links produce an actionable diagnostic', async () =
   assert.ok(result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'));
 });
 
+test('action-only pagination and mobile controls do not produce record diagnostics', async () => {
+  const result = await extract({
+    capabilityId: 'static-html-list',
+    url: 'https://example.test/notices',
+    html: `
+      <ul>
+        <li><a href="javascript:void(0)" onclick="_vsb_multiscreen.setDevice('mobile')">&#x624B;&#x673A;&#x7248;</a></li>
+        <li><a href="javascript:;" onclick="_simple_list_gotopage_fun(2)">&#x8DF3;&#x8F6C;</a></li>
+      </ul>`
+  });
+
+  assert.equal(
+    result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'),
+    false
+  );
+  assert.ok(result.diagnostics.some((item) => item.code === 'ZERO_RECORDS'));
+});
+
+test('action-only blocks with record evidence remain diagnosed', async () => {
+  const cases = [
+    '<li><time datetime="2026-07-28"></time><a href="javascript:;" onclick="goPage(2)">Dated notice</a></li>',
+    '<li><a href="javascript:;" data-id="notice-42">Data notice</a></li>',
+    '<li><a href="javascript:;" onclick="openNotice(42)">Open notice</a></li>',
+    '<li><a href="javascript:;" onclick="customAction()">Unknown but titled notice</a></li>'
+  ];
+
+  for (const html of cases) {
+    const result = await extract({
+      capabilityId: 'static-html-list',
+      url: 'https://example.test/notices',
+      html: `<ul>${html}</ul>`
+    });
+    assert.ok(
+      result.diagnostics.some((item) => item.code === 'ACTION_LINK_REQUIRES_CONFIGURATION'),
+      html
+    );
+  }
+});
+
 test('configured data-id action links become ordinary record URLs', async () => {
   const result = await extract({
     capabilityId: 'action-link-resolution',
