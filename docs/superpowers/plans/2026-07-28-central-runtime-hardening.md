@@ -516,7 +516,6 @@ Expected: FAIL because `createBundleRuntime` is not exported.
 Create `src/bundle-runtime.mjs`:
 
 ```js
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -536,10 +535,18 @@ export async function createBundleRuntime({
   expectedVersion,
   validate = true
 } = {}) {
-  const absoluteBundleDir = path.resolve(bundleDir || '');
+  if (!bundleDir) {
+    throw new Error('bundleDir is required');
+  }
+  const absoluteBundleDir = path.resolve(bundleDir);
   const manifest = validate
     ? await validateBundle({ bundleDir: absoluteBundleDir, expectedVersion })
     : await readBundleManifest(absoluteBundleDir);
+  if (expectedVersion && manifest.version !== expectedVersion) {
+    throw new Error(
+      `Bundle version ${manifest.version} does not match expected version ${expectedVersion}`
+    );
+  }
   const moduleUrl = pathToFileURL(path.join(absoluteBundleDir, 'src', 'index.mjs')).href;
   const runtimeModule = await import(moduleUrl);
 
