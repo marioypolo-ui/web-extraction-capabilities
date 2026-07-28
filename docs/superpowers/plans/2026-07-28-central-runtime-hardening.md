@@ -14,6 +14,8 @@
 - Do not add site-specific suppression for Guangxi University of Science and Technology.
 - Do not add CAPTCHA, slider, login, or browser-security bypasses.
 - Do not add tender, Feishu, scheduling, keyword, date-filtering, or update-policy logic.
+- Domestic Chinese government, government-department, and public-institution targets must use a direct connection even when `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, or a global proxy is configured.
+- Consuming applications own route enforcement: they must bypass proxies with an explicit direct dispatcher or complete `NO_PROXY` coverage, must not silently fall back to a proxy, and must diagnose direct-route failures.
 - Source `validate` remains strict about source-only fixtures, tests, and evidence.
 - Runtime Bundle validation must work without source-only fixtures and tests.
 - Bundle directories are immutable after loading; consumers use a new directory for every candidate version.
@@ -61,6 +63,7 @@ test('action-only pagination and mobile controls do not produce record diagnosti
       <ul>
         <li><a href="javascript:void(0)" onclick="_vsb_multiscreen.setDevice('mobile')">&#x624B;&#x673A;&#x7248;</a></li>
         <li><a href="javascript:;" onclick="_simple_list_gotopage_fun(2)">&#x8DF3;&#x8F6C;</a></li>
+        <li><a href="#" onclick="goPage(1)">&#x9996;&#x9875;</a></li>
       </ul>`
   });
 
@@ -76,6 +79,7 @@ test('action-only blocks with record evidence remain diagnosed', async () => {
     '<li><time datetime="2026-07-28"></time><a href="javascript:;" onclick="goPage(2)">Dated notice</a></li>',
     '<li><a href="javascript:;" data-id="notice-42">Data notice</a></li>',
     '<li><a href="javascript:;" onclick="openNotice(42)">Open notice</a></li>',
+    '<li><a href="javascript:;" onclick="goPage(42)">Unknown but titled notice</a></li>',
     '<li><a href="javascript:;" onclick="customAction()">Unknown but titled notice</a></li>'
   ];
 
@@ -109,7 +113,7 @@ In `src/static-html.mjs`, add these private patterns and helper:
 
 ```js
 const NAVIGATION_TITLE_PATTERN =
-  /^(?:mobile version|手机版|jump|跳转|first|first page|首页|previous|prev|previous page|上一页|next|next page|下一页|last|last page|尾页|末页|第?\s*\d+\s*页|\d+)$/i;
+  /^(?:mobile version|\u624b\u673a\u7248|jump|\u8df3\u8f6c|first|first page|\u9996\u9875|previous|prev|previous page|\u4e0a\u4e00\u9875|next|next page|\u4e0b\u4e00\u9875|last|last page|\u5c3e\u9875|\u672b\u9875|\u7b2c?\s*\d+\s*\u9875|\d+)$/i;
 const PAGINATION_HANDLER_PATTERN =
   /(?:^|[.\s_])(go|goto|change|turn|jump|set|simple_list_goto)?page(?:_fun)?\s*\(|_simple_list_gotopage_fun\s*\(/i;
 const CONTENT_HANDLER_PATTERN = /(?:open|show|view|detail|article|notice)\w*\s*\(/i;
@@ -128,7 +132,10 @@ function isNavigationActionControl({ block, attributes, title }) {
   if (hasRecordMetadata) {
     return false;
   }
-  return NAVIGATION_TITLE_PATTERN.test(title) || PAGINATION_HANDLER_PATTERN.test(handler);
+  return (
+    NAVIGATION_TITLE_PATTERN.test(title) ||
+    (!title && PAGINATION_HANDLER_PATTERN.test(handler))
+  );
 }
 ```
 
@@ -661,8 +668,11 @@ Document:
 - central validation does not decide application fallback or promotion;
 - `bundle:validate` is for released artifacts, while `validate` is for a source checkout;
 - candidate creation failure leaves the already-loaded current runtime usable.
+- Chinese government, government-department, and public-institution targets require direct routing even when `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, or a global system proxy exists;
+- each consuming application must enforce direct routing with an explicit direct dispatcher or complete `NO_PROXY` coverage, must never silently fall back to a proxy, and must emit a diagnostic when the direct route fails;
+- the central library cannot guarantee route selection when a consumer replaces the process-global dispatcher, so route enforcement is an application integration responsibility.
 
-In `docs/diagnostics.md`, explain that `ACTION_LINK_REQUIRES_CONFIGURATION` applies to plausible records, while explicit paging/mobile controls are ignored. In `docs/upgrades.md`, record the v0.1.3 upgrade steps and compatibility. In `PROGRESS.md`, record completion and verification evidence without claiming publication before the tag/release actually exists.
+In `docs/diagnostics.md`, explain that `ACTION_LINK_REQUIRES_CONFIGURATION` applies to plausible records, while explicit paging/mobile controls are ignored. Also document a direct-route failure as an application-visible fetch diagnostic rather than a reason to retry through a proxy. In `docs/upgrades.md`, record the v0.1.3 upgrade steps, compatibility, and a consumer checklist item that verifies proxy bypass for every configured Chinese government/public-institution host. In `PROGRESS.md`, record completion and verification evidence without claiming publication before the tag/release actually exists.
 
 - [ ] **Step 5: Run the fastest focused verification**
 
@@ -734,4 +744,5 @@ Expected: the worktree is clean, `git diff --check` is silent, and every changed
 - Two immutable Bundle directories can be loaded and compared in one process.
 - A failed candidate load does not break the current runtime.
 - Version, docs, CI, and release artifacts consistently identify v0.1.3.
+- Integration guidance makes proxy bypass mandatory for Chinese government/public-institution sites and forbids silent proxy fallback.
 - Full tests, source validation, docs smoke, sensitive audit, Bundle generation, standalone Bundle validation, and live GXUST regression pass.
