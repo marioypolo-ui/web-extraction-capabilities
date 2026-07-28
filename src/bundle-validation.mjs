@@ -196,6 +196,7 @@ export async function validateBundleManifest({ bundleDir, expectedVersion } = {}
     }
   }
 
+  await validatePackageIdentity(path.resolve(bundleDir), manifest);
   return manifest;
 }
 
@@ -204,7 +205,6 @@ export async function validateBundle({ bundleDir, expectedVersion } = {}) {
   const absoluteBundleDir = path.resolve(bundleDir);
   const tree = await readBundleTree(absoluteBundleDir);
   assertExactTree(manifest, tree);
-  await validatePackageIdentity(absoluteBundleDir, manifest);
 
   const filesByPath = new Map(tree.files.map((entry) => [entry.path, entry.absolutePath]));
   const verifiedFiles = [];

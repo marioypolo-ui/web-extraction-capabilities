@@ -30,6 +30,13 @@ async function mutateManifest(bundleDir, mutate) {
   await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 }
 
+async function mutatePackage(bundleDir, mutate) {
+  const packagePath = path.join(bundleDir, 'package.json');
+  const packageJson = JSON.parse(await fs.readFile(packagePath, 'utf8'));
+  mutate(packageJson);
+  await fs.writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
+}
+
 test('loads immutable bundle runtimes in isolation', async () => {
   const currentDir = await makeBundle('current');
   const candidateDir = await makeBundle('candidate');
@@ -110,10 +117,37 @@ test('validate: false still rejects malformed manifest hashes', async () => {
   );
 });
 
+test('validate: false still rejects a package name mismatch', async () => {
+  const bundleDir = await makeBundle('package-name-mismatch');
+  await mutatePackage(bundleDir, (packageJson) => {
+    packageJson.name = '@example/wrong-package';
+  });
+
+  await assert.rejects(
+    createBundleRuntime({ bundleDir, validate: false }),
+    /package name .* does not match/i
+  );
+});
+
+test('validate: false still rejects a package version mismatch', async () => {
+  const bundleDir = await makeBundle('package-version-mismatch');
+  await mutatePackage(bundleDir, (packageJson) => {
+    packageJson.version = '9.9.9';
+  });
+
+  await assert.rejects(
+    createBundleRuntime({ bundleDir, validate: false }),
+    /package version .* does not match/i
+  );
+});
+
 test('validate: false rejects a manifest version that differs from the bundle module', async () => {
   const bundleDir = await makeBundle('manifest-version-mismatch');
   await mutateManifest(bundleDir, (manifest) => {
     manifest.version = '9.9.9';
+  });
+  await mutatePackage(bundleDir, (packageJson) => {
+    packageJson.version = '9.9.9';
   });
 
   await assert.rejects(
