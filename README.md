@@ -69,7 +69,7 @@ const result = await extract({
   ],
   "diagnostics": [],
   "capabilityId": "static-html-list",
-  "capabilityVersion": "0.1.2"
+  "capabilityVersion": "0.1.3"
 }
 ```
 
@@ -91,10 +91,32 @@ node bin/web-extract.mjs catalog --url "https://www.gxufe.edu.cn/www/myweb/level
 
 ```powershell
 node bin/web-extract.mjs bundle --output dist/bundle
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.1.3
 node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtures/static-list.html
 ```
 
-应用提交 bundle 中的 `src/`、`capabilities/`、`schemas/`、`package.json` 和 `bundle-manifest.json`，记录版本和总 SHA256。升级前在临时目录验证，影子比较新旧结果，成功后原子切换；失败则继续使用旧目录。详见[升级与回滚](docs/upgrades.md)。
+应用提交 bundle 中的 `src/`、`capabilities/`、`schemas/`、`package.json` 和 `bundle-manifest.json`，记录版本和总 SHA256。每个版本使用独立且不可变的目录：
+
+```js
+import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
+
+const candidate = await createBundleRuntime({
+  bundleDir: 'vendor/web-extraction-capabilities/0.1.3',
+  expectedVersion: '0.1.3'
+});
+```
+
+当前版本和候选版本可以同时加载，由应用比较结果。`bundle:validate` 用于发布 Bundle，`validate` 用于源码检出；中央校验不决定应用的回退或晋升策略。候选版本创建失败时，已加载的当前运行时仍可继续使用。详见[升级与回滚](docs/upgrades.md)。
+
+从可信 Release 下载归档后，应用必须先使用归档外取得的可信 SHA256 校验归档，再执行归档内任何代码，包括 Bundle 自带 CLI。`bundle:validate` 是完整性检查：它精确核对 manifest 与实际文件/目录、拒绝额外文件、空目录和符号链接，并核对文件 hash 与 `package.json` 身份；它不能单独证明归档来源可信。
+
+`createBundleRuntime({ validate: false })` 仅供已经可信且不可变的本地 Bundle 使用，只跳过实际文件树和文件内容 hash 校验；manifest 的格式、结构、hash 字段形状、能力摘要、`expectedVersion` 以及模块版本一致性仍会校验。
+
+## 国内政务网站直连
+
+中国政府、政府部门和行政事业单位网站即使存在 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 或系统全局代理，也必须直连。每个调用应用必须在自己的网络层使用显式 direct dispatcher，或为全部目标主机提供完整 `NO_PROXY` 覆盖；禁止直连失败后静默改走代理，并必须输出应用可见的失败诊断。
+
+中央库只规定该契约，不负责政府站点分类或修改 fetch 行为。若应用替换进程级全局 dispatcher，中央库无法保证路由选择，因此直连强制和逐主机验证始终由应用集成层负责。
 
 ## 更新方式选择
 

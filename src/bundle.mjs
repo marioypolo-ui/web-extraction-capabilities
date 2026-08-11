@@ -3,7 +3,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { validateBundle } from './bundle-validation.mjs';
 import { getCatalog } from './catalog.mjs';
+import { LIBRARY_VERSION } from './result.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const INCLUDED = [
@@ -82,7 +84,7 @@ export async function buildBundle({ outputDir }) {
   const manifest = {
     bundleFormatVersion: 1,
     name: '@marioypolo/web-extraction-capabilities',
-    version: '0.1.2',
+    version: LIBRARY_VERSION,
     bundleSha256,
     catalogSha256,
     capabilities,
@@ -93,5 +95,6 @@ export async function buildBundle({ outputDir }) {
     `${JSON.stringify(manifest, null, 2)}\n`,
     'utf8'
   );
+  await validateBundle({ bundleDir: outputDir, expectedVersion: LIBRARY_VERSION });
   return manifest;
 }

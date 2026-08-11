@@ -19,6 +19,11 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: node bin/web-extract.mjs bundle --output dist/web-extraction-capabilities
+      - run: >-
+          node dist/web-extraction-capabilities/bin/web-extract.mjs
+          bundle:validate
+          --bundle dist/web-extraction-capabilities
+          --expected-version 0.1.3
       - name: Package candidate
         shell: bash
         run: |

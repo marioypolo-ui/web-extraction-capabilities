@@ -6,6 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
+import { buildBundle, LIBRARY_VERSION } from '../src/index.mjs';
+
 const cli = fileURLToPath(new URL('../bin/web-extract.mjs', import.meta.url));
 
 test('catalog CLI writes only parseable JSON to stdout', () => {
@@ -90,8 +92,56 @@ test('bundle CLI creates a versioned snapshot manifest', () => {
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).version, '0.1.2');
+  assert.equal(JSON.parse(result.stdout).version, LIBRARY_VERSION);
   assert.equal(fs.existsSync(path.join(output, 'bundle-manifest.json')), true);
+});
+
+test('bundle:validate CLI validates a generated standalone bundle', async () => {
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'web-cap-cli-bundle-validate-'));
+  const output = path.join(root, 'bundle');
+  await buildBundle({ outputDir: output });
+  const bundledCli = path.join(output, 'bin', 'web-extract.mjs');
+  const validation = spawnSync(
+    process.execPath,
+    [
+      bundledCli,
+      'bundle:validate',
+      '--bundle',
+      output,
+      '--expected-version',
+      LIBRARY_VERSION
+    ],
+    { encoding: 'utf8' }
+  );
+
+  assert.equal(validation.status, 0, validation.stderr);
+  assert.equal(JSON.parse(validation.stdout).version, LIBRARY_VERSION);
+});
+
+test('bundle:validate CLI reports invalid runtime syntax as a JSON integrity failure', async () => {
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'web-cap-cli-bundle-corrupt-'));
+  const output = path.join(root, 'bundle');
+  await buildBundle({ outputDir: output });
+  fs.writeFileSync(path.join(output, 'src', 'index.mjs'), 'export const broken = ;\n', 'utf8');
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(output, 'bin', 'web-extract.mjs'),
+      'bundle:validate',
+      '--bundle',
+      output,
+      '--expected-version',
+      LIBRARY_VERSION
+    ],
+    { encoding: 'utf8' }
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stderr, '');
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.error.code, 'COMMAND_FAILED');
+  assert.match(parsed.error.message, /SHA256 mismatch/i);
 });
 
 test('contribution:pack CLI creates a restricted contribution package', () => {
