@@ -24,6 +24,12 @@ See [Integration](docs/integration.md), [Diagnostics](docs/diagnostics.md), [Cap
 
 Use `node bin/web-extract.mjs catalog --url "<url>"` to find verified website references. Reusable references can guide automatic routing; reported-only references never control it.
 
+## Real-world usage and project evidence
+
+As of `v0.1.3`, the catalog contains 11 machine-readable capability classes, 14 public website references backed by live tests or sanitized fixtures, and one reported-only reference for human-verification risk. Release gates include 122 automated tests, and GitHub Releases ship standalone bundles with SHA256 checksum files.
+
+Two independent Node.js applications consume the library: a procurement-notice monitor downloads, verifies, shadow-tests, and switches candidate bundles, while a regulatory-knowledge sync application pins a verified version snapshot. Each application retains ownership of business rules, storage, credentials, scheduling, and notifications and reuses only the extraction and diagnostics contract.
+
 ## Immutable bundle runtimes
 
 Store one version per immutable directory. The current and candidate runtimes may coexist so the consuming application can compare them:

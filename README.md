@@ -87,6 +87,12 @@ node bin/web-extract.mjs catalog --url "https://www.gxufe.edu.cn/www/myweb/level
 
 `reusable: true` 表示已有 fixture 或真实运行证据，可直接进入应用自己的验证流程；`reported` 参考只用于提示风险，不会控制自动路由。`extract --capability auto` 会优先使用匹配的可复用网站参考，再用页面结构检测兜底。
 
+## 实际应用与项目数据
+
+截至 `v0.1.3`，目录包含 11 类机器可读能力、14 个具有真实测试或脱敏 fixture 测试证据的公开网站参考，以及 1 个仅用于提示人工验证风险的 `reported` 参考；发布门禁包含 122 项自动测试。仓库通过 GitHub Releases 提供带 SHA256 校验文件的独立 Bundle。
+
+本库已被两个独立 Node.js 应用接入：招投标公告监控会下载 Release、校验 SHA256、影子验证候选 Bundle 后再切换；法规知识同步应用固定使用经校验的版本快照。二者都保留自己的业务规则、存储、凭据、调度和通知，仅复用本库的网页提取与诊断契约。
+
 ## 独立应用使用
 
 ```powershell
