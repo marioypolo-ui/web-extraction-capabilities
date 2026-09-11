@@ -85,6 +85,30 @@ test('validate CLI can validate one capability', () => {
   assert.deepEqual(parsed.errors, []);
 });
 
+test('detail CLI returns a document from saved HTML with no network access', () => {
+  const htmlFile = fileURLToPath(new URL('../fixtures/detail-article.html', import.meta.url));
+  const result = spawnSync(process.execPath,
+    [cli, 'detail', '--url', 'https://example.test/article', '--html-file', htmlFile], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stdout || result.stderr);
+  assert.equal(result.stderr, '');
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.capabilityId, 'web-page-detail');
+  assert.ok(parsed.document.contentText.length > 0);
+  assert.ok(Array.isArray(parsed.document.tables));
+  assert.equal('records' in parsed, false);
+});
+
+test('detail CLI signals a missing body through its exit code and JSON diagnostics', () => {
+  const htmlFile = fileURLToPath(new URL('../fixtures/spa-shell.html', import.meta.url));
+  const result = spawnSync(process.execPath,
+    [cli, 'detail', '--url', 'https://example.test/app', '--html-file', htmlFile], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, '');
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.document, null);
+  assert.ok(parsed.diagnostics.some((item) => item.code === 'DYNAMIC_RENDERING_REQUIRED'));
+});
+
 test('bundle CLI creates a versioned snapshot manifest', () => {
   const output = fs.mkdtempSync(path.join(os.tmpdir(), 'web-cap-cli-bundle-'));
   const result = spawnSync(process.execPath, [cli, 'bundle', '--output', output], {

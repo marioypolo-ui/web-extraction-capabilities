@@ -81,6 +81,34 @@ test('validate: false requires a matching expected version', async () => {
   assert.equal(runtime.version, LIBRARY_VERSION);
 });
 
+test('standalone runtime exposes detail extraction and feedback replay without source dependencies', async () => {
+  const bundleDir = await makeBundle('detail-runtime');
+  const runtime = await createBundleRuntime({ bundleDir, expectedVersion: LIBRARY_VERSION });
+  const result = await runtime.extractDetail({ url: 'https://example.test/report',
+    html: '<article><h1>Bundled report</h1><p>The complete standalone detail body.</p><a download href="/spec.pdf">Specification</a></article>' });
+  assert.equal(result.document.title, 'Bundled report');
+  assert.equal(result.document.attachments[0].url, 'https://example.test/spec.pdf');
+  assert.equal(result.capabilityVersion, LIBRARY_VERSION);
+  assert.deepEqual(result.diagnostics, []);
+  const report = JSON.parse(await fs.readFile(path.join(bundleDir, 'examples', 'problem-feedback', 'detail.json'), 'utf8'));
+  assert.equal(runtime.validateProblemReport(report).ok, true);
+  assert.equal((await runtime.reproduceProblem(report)).status, 'not-reproduced');
+});
+
+test('a trusted older-style bundle without the optional detail API still loads', async () => {
+  const bundleDir = await makeBundle('prior-api-runtime');
+  const entry = path.join(bundleDir, 'src', 'index.mjs');
+  const source = await fs.readFile(entry, 'utf8');
+  await fs.writeFile(entry, source
+    .replace(/^export \{ extractDetail \}.*\r?\n/m, '')
+    .replace(/^export \{ validateProblemReport, reproduceProblem \}.*\r?\n/m, ''), 'utf8');
+  const runtime = await createBundleRuntime({ bundleDir, expectedVersion: LIBRARY_VERSION, validate: false });
+  assert.equal(runtime.extractDetail, undefined);
+  assert.equal(runtime.validateProblemReport, undefined);
+  assert.equal(runtime.reproduceProblem, undefined);
+  assert.equal((await runtime.extract(staticInput)).records.length, 2);
+});
+
 test('validate: false still rejects unsupported manifest formats', async () => {
   const bundleDir = await makeBundle('unsupported-format');
   await mutateManifest(bundleDir, (manifest) => {

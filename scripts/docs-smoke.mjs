@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LIBRARY_VERSION } from '../src/result.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const cli = path.join(root, 'bin', 'web-extract.mjs');
@@ -80,6 +81,17 @@ try {
     fixture
   ]);
   const snapshot = run([cli, 'bundle', '--output', bundle]);
+  const detailFixture = path.join(root, 'fixtures', 'detail-article.html');
+  const detail = run([cli, 'detail', '--url', 'https://example.test/articles/one', '--html-file', detailFixture]);
+  const standaloneDetail = run([
+    path.join(root, 'examples', 'detail-consumer', 'run.mjs'), '--bundle', bundle,
+    '--url', 'https://example.test/articles/one', '--html-file', detailFixture
+  ]);
+  const feedbackExample = path.join(root, 'examples', 'problem-feedback', 'detail.json');
+  const feedbackValidation = run([cli, 'feedback:validate', '--report', feedbackExample]);
+  const feedbackReplay = run([
+    path.join(bundle, 'bin', 'web-extract.mjs'), 'feedback:reproduce', '--report', feedbackExample
+  ]);
   const standalone = run([
     consumer,
     '--bundle',
@@ -133,7 +145,12 @@ try {
     validation.errors.length === 0 &&
     detection.recommendations[0].capabilityId === 'static-html-list' &&
     extraction.records.length === 2 &&
-    snapshot.version === '0.1.3' &&
+    snapshot.version === LIBRARY_VERSION &&
+    Boolean(detail.document?.contentText) &&
+    detail.document.contentText === standaloneDetail.document?.contentText &&
+    feedbackValidation.ok &&
+    feedbackReplay.status === 'not-reproduced' &&
+    feedbackReplay.problemKey === feedbackValidation.problemKey &&
     snapshot.bundleFormatVersion === 1 &&
     standalone.records.length === 2 &&
     packedContribution.capabilityId === 'example-card-list' &&
@@ -145,7 +162,9 @@ try {
     `${JSON.stringify(
       {
         ok,
-        commandsRun: 8,
+        commandsRun: 12,
+        detailContentCharacters: detail.document.contentText.length,
+        feedbackReplayStatus: feedbackReplay.status,
         capabilityCount: catalog.capabilities.length,
         extractedRecords: standalone.records.length,
         updatePolicyDocumented,

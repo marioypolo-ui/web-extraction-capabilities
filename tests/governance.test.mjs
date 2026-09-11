@@ -41,3 +41,15 @@ test('trusted auto-merge workflow never checks out or executes pull request code
   assert.doesNotMatch(workflow, /actions\/checkout/);
   assert.doesNotMatch(workflow, /npm (?:test|install|ci)/);
 });
+
+test('problem feedback executes default-branch code and treats issue text only as event data', () => {
+  const workflow = fs.readFileSync(path.join(root, '.github/workflows/problem-feedback.yml'), 'utf8');
+  assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /queue: max/);
+  assert.match(workflow, /npm test/);
+  assert.match(workflow, /--event "\$GITHUB_EVENT_PATH"/);
+  assert.match(workflow, /issues: write/);
+  assert.doesNotMatch(workflow, /\$\{\{[^\n}]*(?:issue\.body|head\.ref|head\.sha)/);
+  assert.doesNotMatch(workflow, /pull_request_target|contents: write|id-token: write|secrets\./);
+});

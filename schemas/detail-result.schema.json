@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marioypolo-ui/web-extraction-capabilities/schemas/detail-result.schema.json",
+  "title": "Web page detail extraction result",
+  "type": "object",
+  "required": ["document", "diagnostics", "capabilityId", "capabilityVersion"],
+  "properties": {
+    "document": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["title", "url", "publishedAt", "contentText", "tables", "images", "attachments"],
+          "properties": {
+            "title": { "type": "string" },
+            "url": { "type": "string", "format": "uri" },
+            "publishedAt": { "type": ["string", "null"] },
+            "contentText": { "type": "string", "description": "Full extracted plain text, without a summary-length cutoff. Render as text, never as executable HTML." },
+            "tables": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["caption", "rows"],
+                "properties": {
+                  "caption": { "type": "string" },
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["text", "rowSpan", "colSpan", "header"],
+                        "properties": {
+                          "text": { "type": "string" },
+                          "rowSpan": { "type": "integer", "minimum": 0 },
+                          "colSpan": { "type": "integer", "minimum": 1 },
+                          "header": { "type": "boolean" }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["url", "alt"],
+                "properties": {
+                  "url": { "type": "string", "format": "uri" },
+                  "alt": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "attachments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["url", "title"],
+                "properties": {
+                  "url": { "type": "string", "format": "uri" },
+                  "title": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "severity": { "enum": ["info", "warning", "error"] },
+          "message": { "type": "string" },
+          "details": { "type": "object" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "capabilityId": { "const": "web-page-detail" },
+    "capabilityVersion": { "type": "string" }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "document": { "type": "null" } } },
+      "then": { "properties": { "diagnostics": { "minItems": 1 } } }
+    }
+  ]
+}

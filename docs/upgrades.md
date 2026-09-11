@@ -2,6 +2,37 @@
 
 中央库通过 GitHub Releases 提供稳定版本、bundle 和 SHA256，但不会强制应用自动更新，也不会在应用中自行创建计划任务。
 
+## v0.2.0 升级
+
+v0.2.0 新增 `detail` 命令与 `extractDetail()` API，返回详情页的 `document`、诊断和版本信息；旧的列表 `extract()` 及 `records` 契约保持不变，Bundle 格式仍为 `1`。详情的全文、表格、图片与附件链接契约见[详情提取](detail-extraction.md)。
+
+同一版本提供 `feedback:validate`、`feedback:reproduce` 和[问题反馈维护流程](problem-feedback.md)。应用提交脱敏最小报告后，GitHub 离线复现并归并重复问题；中央库维护 Agent 定期处理待修复队列，经回归测试、评审和完整发布门禁后发布 GitHub Release，并在原单关联版本。该维护流程不会替应用下载、接受或部署新 Bundle。
+
+先用可信 Release 渠道在归档外提供的 SHA256 校验下载内容，再执行归档中的代码。候选版本应放入独立且不可变的 `vendor/web-extraction-capabilities/0.2.0` 目录，随后明确校验版本：
+
+```powershell
+node vendor/web-extraction-capabilities/0.2.0/bin/web-extract.mjs bundle:validate --bundle vendor/web-extraction-capabilities/0.2.0 --expected-version 0.2.0
+```
+
+```js
+import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
+
+const candidate = await createBundleRuntime({
+  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
+  expectedVersion: '0.2.0'
+});
+if (typeof candidate.extractDetail === 'function') {
+  const detail = await candidate.extractDetail({ url, html });
+  // Compare the document and diagnostics with the application's expected result.
+}
+```
+
+`extractDetail` 是 Bundle 运行时的可选 API：新版加载器仍可加载没有此接口的旧 Bundle，应用必须先检测，再明确决定是否使用详情流程。中央库不会替应用接受候选版本，也不会修改应用的失败回退策略。
+
+升级时继续执行现有列表影子验证；新增详情流程应使用相同的页面快照或经授权取得的内容，核对标题、正文末尾、表格合并关系、资源地址和诊断。新能力没有新增的真实网站详情验证记录，合成测试不代表应用目标站点已验证。影子验证、接受标准、晋升与回滚仍由调用应用负责；发现未解释的正文缺失或诊断时保留当前版本。
+
+接收 issue 关联的修复版本时，应用应保存原问题 key，在自己的候选 Bundle 上复跑同一脱敏样本，并完成真实环境所需的授权验证。中央库关闭 issue 或离线测试通过不等于应用生产验收通过；应用的通知与版本切换继续遵守已确认策略。
+
 ## v0.1.3 升级
 
 v0.1.3 保持 Bundle 格式 `1` 和现有提取结果结构兼容，修正静态 HTML 动作链接诊断，并加强独立 Bundle 校验。每个版本必须放在独立且不可变的目录中；当前版本和候选版本可由应用同时加载比较：

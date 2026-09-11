@@ -2,6 +2,8 @@ import http from 'node:http';
 import https from 'node:https';
 import { parseLikelyPublicationDate, parsePublicationDate } from './date-parse.mjs';
 import { normalizeText } from './matching.mjs';
+import { fetchResource } from '../http.mjs';
+import { diagnostic } from '../result.mjs';
 
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36';
@@ -349,26 +351,20 @@ async function fetchCtzcNoticeList(url) {
   return Array.isArray(body?.data) ? body.data : [];
 }
 
-async function fetchCtzcNoticeDetail(url) {
+async function fetchCtzcNoticeDetail(url, httpOptions) {
   const parsed = new URL(url);
   const id = /^#\/notice\/detail\/([^/?#]+)/.exec(parsed.hash)?.[1] || '';
   if (!id) {
     return null;
   }
 
-  const response = await fetch(new URL(`/ctzc/service/notice/get/${encodeURIComponent(id)}`, parsed.origin), {
+  const body = await requestDetailJson(new URL(`/ctzc/service/notice/get/${encodeURIComponent(id)}`, parsed.origin), {
     headers: {
       'user-agent': DEFAULT_USER_AGENT,
       accept: 'application/json, text/plain, */*',
       referer: url
     }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${response.statusText}`);
-  }
-
-  const body = await response.json();
+  }, httpOptions);
   return body?.data || null;
 }
 
@@ -466,7 +462,7 @@ async function fetchGxmuyfyBulletinList(url) {
   return Array.isArray(body?.result?.records) ? body.result.records : [];
 }
 
-async function fetchGxmuyfyBulletinDetail(url) {
+async function fetchGxmuyfyBulletinDetail(url, httpOptions) {
   const parsed = new URL(url);
   const route = parseGxmuyfyDetailRoute(parsed);
   if (!route.id) {
@@ -482,18 +478,13 @@ async function fetchGxmuyfyBulletinDetail(url) {
     apiUrl.searchParams.set('bizType', route.bizType);
   }
 
-  const response = await fetch(apiUrl, {
+  const body = await requestDetailJson(apiUrl, {
     headers: {
       'user-agent': DEFAULT_USER_AGENT,
       accept: 'application/json, text/plain, */*',
       referer: url
     }
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${response.statusText}`);
-  }
-
-  const body = await response.json();
+  }, httpOptions);
   return body?.result || null;
 }
 
@@ -613,7 +604,7 @@ async function fetchCcgpGuangxiFrameworkList(url) {
   return Array.isArray(body?.result?.data?.data) ? body.result.data.data : [];
 }
 
-async function fetchCcgpGuangxiDetail(url) {
+async function fetchCcgpGuangxiDetail(url, httpOptions) {
   const parsed = new URL(url);
   const articleId = (parsed.searchParams.get('articleId') || '').replace(/ /g, '+');
   if (!articleId) {
@@ -624,20 +615,55 @@ async function fetchCcgpGuangxiDetail(url) {
   apiUrl.searchParams.set('articleId', articleId);
   apiUrl.searchParams.set('parentId', parsed.searchParams.get('parentId') || '66485');
 
-  const response = await fetch(apiUrl, {
+  const body = await requestDetailJson(apiUrl, {
     headers: {
       'user-agent': DEFAULT_USER_AGENT,
       accept: 'application/json, text/plain, */*',
       referer: url
     }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${response.statusText}`);
-  }
-
-  const body = await response.json();
+  }, httpOptions);
   return body?.result?.data || null;
+}
+
+async function requestDetailJson(url, init, httpOptions) {
+  if (httpOptions === undefined) {
+    const response = await fetch(url, init);
+    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    return response.json();
+  }
+  const response = await fetchResource(String(url), {
+    ...httpOptions, headers: { ...init.headers, ...httpOptions.headers }
+  });
+  if (response.diagnostics.length) throw new Error(response.diagnostics[0].message);
+  if (response.json !== null) return response.json;
+  try { return JSON.parse(response.text); }
+  catch { throw new Error('The platform detail endpoint did not return valid JSON.'); }
+}
+
+export async function fetchKnownPlatformDetail(url, httpOptions = {}) {
+  const loader = isCtzcNoticeDetail(url) ? fetchCtzcNoticeDetail
+    : isGxmuyfyAnnouncementInfo(url) ? fetchGxmuyfyBulletinDetail
+      : isCcgpGuangxiDetail(url) ? fetchCcgpGuangxiDetail : null;
+  if (!loader) return { matched: false, html: '', diagnostics: [] };
+  try {
+    const detail = await loader(url, httpOptions);
+    if (typeof detail?.content !== 'string' || !detail.content.trim()) {
+      throw new Error('The platform detail API returned no article body.');
+    }
+    const date = loader === fetchCtzcNoticeDetail
+      ? parseCtzcDate(detail.publishTime || detail.createDatetime || detail.updateDatetime || '')
+      : loader === fetchCcgpGuangxiDetail ? formatChinaDate(detail.publishDate)
+        : detail.publishTime || '';
+    return {
+      matched: true,
+      html: `<article data-dynamic-source="platform-detail"><h1>${escapeHtml(detail.title || '')}</h1>${date ? `<time datetime="${escapeHtml(date)}">${escapeHtml(date)}</time>` : ''}<div>${detail.content}</div></article>`,
+      diagnostics: []
+    };
+  } catch (error) {
+    return { matched: true, html: '', diagnostics: [
+      diagnostic('DETAIL_API_FAILED', error.message, { severity: 'error' })
+    ] };
+  }
 }
 
 function buildCcgpGuangxiDetailUrl(listUrl, item) {

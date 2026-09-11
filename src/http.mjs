@@ -7,7 +7,9 @@ const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/138 Safari/537.36';
 
 function decodeBody(buffer, contentType = '') {
-  const charset = /charset\s*=\s*["']?([^;"'\s]+)/i.exec(contentType)?.[1]?.toLowerCase();
+  const head = buffer.subarray(0, 4096).toString('latin1');
+  const charset = (/charset\s*=\s*["']?([^;"'\s]+)/i.exec(contentType)?.[1] ||
+    /<meta[^>]+charset\s*=\s*["']?([^;"'\s/>]+)/i.exec(head)?.[1])?.toLowerCase();
   try {
     return new TextDecoder(charset || 'utf-8').decode(buffer);
   } catch {
@@ -60,7 +62,8 @@ function fetchWithFixedResolve(rawUrl, options = {}, redirectCount = 0) {
             status,
             statusText: response.statusMessage || '',
             buffer: Buffer.concat(chunks),
-            contentType: String(response.headers['content-type'] || '')
+            contentType: String(response.headers['content-type'] || ''),
+            resolvedUrl: rawUrl
           })
         );
       }
@@ -113,7 +116,8 @@ export async function fetchResource(rawUrl, options = {}) {
           status: nativeResponse.status,
           statusText: nativeResponse.statusText,
           buffer: Buffer.from(await nativeResponse.arrayBuffer()),
-          contentType: nativeResponse.headers.get('content-type') || ''
+          contentType: nativeResponse.headers.get('content-type') || '',
+          resolvedUrl: nativeResponse.url || url
         };
       } finally {
         clearTimeout(timer);
@@ -138,17 +142,20 @@ export async function fetchResource(rawUrl, options = {}) {
     if (/json/i.test(response.contentType)) {
       try {
         json = JSON.parse(text);
-      } catch (error) {
+      } catch {
         return {
           text,
           json: null,
           diagnostics: [
-            diagnostic('INVALID_JSON', error.message, { severity: 'error', details: { url } })
+            diagnostic('INVALID_JSON', 'The endpoint did not return valid JSON.', { severity: 'error', details: { url } })
           ]
         };
       }
     }
-    return { text, json, diagnostics: [], resolvedUrl: url };
+    return {
+      text, json, diagnostics: [], resolvedUrl: response.resolvedUrl || url,
+      contentType: response.contentType, status: response.status
+    };
   } catch (error) {
     const cause = error.cause?.code || error.cause?.message;
     return {

@@ -2,7 +2,7 @@ import { containsHumanChallenge } from './detect.mjs';
 import { diagnostic } from './result.mjs';
 import { extractStaticHtml } from './static-html.mjs';
 
-export async function extractWithBrowser(input, capabilityId) {
+export async function extractWithBrowser(input, capabilityId, parsePage = extractStaticHtml) {
   const config = input.config || {};
   if (
     capabilityId === 'authenticated-session' &&
@@ -38,6 +38,7 @@ export async function extractWithBrowser(input, capabilityId) {
 
   let browser;
   let context;
+  let page;
   try {
     browser = config.cdpEndpoint
       ? await playwright.chromium.connectOverCDP(config.cdpEndpoint)
@@ -47,11 +48,24 @@ export async function extractWithBrowser(input, capabilityId) {
       : await browser.newContext(
           config.storageStatePath ? { storageState: config.storageStatePath } : undefined
         );
-    const page = await context.newPage();
-    await page.goto(input.url, {
+    page = await context.newPage();
+    let navigationResponse;
+    if (parsePage !== extractStaticHtml) {
+      page.on?.('response', (response) => {
+        if (response.request().isNavigationRequest() && response.frame() === page.mainFrame()) {
+          navigationResponse = response;
+        }
+      });
+    }
+    const httpFailure = () => parsePage !== extractStaticHtml && navigationResponse?.status() >= 400
+      ? { records: [], diagnostics: [diagnostic('HTTP_ERROR',
+        `HTTP ${navigationResponse.status()} ${navigationResponse.statusText()}`.trim(), { severity: 'error' })] }
+      : null;
+    navigationResponse = await page.goto(input.url, {
       waitUntil: config.waitUntil || 'networkidle',
       timeout: config.timeoutMs || 30000
-    });
+    }) || navigationResponse;
+    if (httpFailure()) return httpFailure();
 
     const clickSteps = Array.isArray(config.clicks)
       ? config.clicks
@@ -65,10 +79,11 @@ export async function extractWithBrowser(input, capabilityId) {
         await page.locator(step.selector).click();
       }
       await page.waitForLoadState(step.waitUntil || 'networkidle');
+      if (httpFailure()) return httpFailure();
     }
 
     const html = await page.content();
-    if (containsHumanChallenge(html)) {
+    if (parsePage === extractStaticHtml && containsHumanChallenge(html)) {
       return {
         records: [],
         diagnostics: [
@@ -79,7 +94,7 @@ export async function extractWithBrowser(input, capabilityId) {
         ]
       };
     }
-    return extractStaticHtml({ html, url: page.url(), config });
+    return parsePage({ html, url: page.url(), config });
   } catch (error) {
     return {
       records: [],
@@ -92,6 +107,10 @@ export async function extractWithBrowser(input, capabilityId) {
     };
   } finally {
     if (browser && !config.keepBrowserOpen) {
+      if (config.cdpEndpoint) {
+        await page?.close().catch(() => {});
+      }
+      // For connectOverCDP, close disconnects this client and preserves the external browser.
       await browser.close().catch(() => {});
     }
   }

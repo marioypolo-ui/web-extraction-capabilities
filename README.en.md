@@ -2,6 +2,28 @@
 
 An executable catalog of reusable website detection, extraction, diagnostics, fixtures, and tests. Applications keep ownership of business filtering, storage, credentials, scheduling, and notifications.
 
+## Extract a detail page
+
+Supply an article, announcement, or policy page URL:
+
+```powershell
+node bin/web-extract.mjs detail --url "https://example.test/articles/1"
+```
+
+Replace the example URL with the target. In `v0.2.0`, `detail` and the exported `extractDetail({ url })` API return a `document` with its title, full content text, publication date, structured tables, image URLs, attachment links, and diagnostics. Full content is not limited to the 500-character list summary. Existing HTML can be supplied with `--html-file` for offline extraction. WorkBuddy and other executing agents can discover this public command here and follow the [Detail extraction guide](docs/detail-extraction.md), without requiring users to name internal source files.
+
+The default does not launch a browser. Unknown layouts may need a content selector; unknown JSON APIs require explicit field mapping. Browser execution requires application-supplied Playwright and explicit browser mode or fallback. The new generic capability uses synthetic fixtures and has no new verified live detail targets; it does not guarantee coverage of every website.
+
+## Application agent integration and problem feedback
+
+Give WorkBuddy or another application agent this request:
+
+> Use https://github.com/marioypolo-ui/web-extraction-capabilities to integrate list and detail extraction into my application. Follow its public documentation, pin and verify the version, and locally validate sanitized minimal evidence when extraction misses or misreads content. Within the authorized scope for public feedback, search by issue key and update the existing issue or submit a new GitHub report. Apply released fixes through this application's agreed upgrade and acceptance policy.
+
+The [Problem feedback workflow](docs/problem-feedback.md) introduced in `v0.2.0` covers missing list records, incorrect titles, links and dates, and detail body, table, image and attachment problems. Applications run `feedback:validate` and `feedback:reproduce` locally before public submission. GitHub validates the sanitized report, reproduces it offline, runs tests, and merges duplicate reports into a canonical issue. The central maintenance agent checks the repair queue hourly, publishes tested fixes to GitHub, and links the fixing version in the original issue. Unchanged state stays quiet.
+
+Application upgrades, production acceptance and notifications remain in the application task. Offline evidence does not verify the live browser, session or network, and automatic repair of every unknown website is not guaranteed.
+
 ## Guarantees
 
 - Fetch failures, zero records, dynamic rendering, login, human verification, and missing dependencies are explicit diagnostics.
@@ -17,10 +39,15 @@ npm test
 node bin/web-extract.mjs catalog
 node bin/web-extract.mjs detect --url "https://example.test/notices" --html-file fixtures/static-list.html
 node bin/web-extract.mjs extract --capability static-html-list --url "https://example.test/notices/" --html-file fixtures/static-list.html
+node bin/web-extract.mjs detail --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
+node bin/web-extract.mjs feedback:validate --report examples/problem-feedback/detail.json
+node bin/web-extract.mjs feedback:reproduce --report examples/problem-feedback/detail.json
 node bin/web-extract.mjs bundle --output dist/bundle
 ```
 
-See [Integration](docs/integration.md), [Diagnostics](docs/diagnostics.md), [Capability authoring](docs/capability-authoring.md), and [Upgrades](docs/upgrades.md).
+See [Detail extraction](docs/detail-extraction.md), [Problem feedback](docs/problem-feedback.md), [Integration](docs/integration.md), [Diagnostics](docs/diagnostics.md), [Capability authoring](docs/capability-authoring.md), and [Upgrades](docs/upgrades.md).
+
+Detail extraction has a separate [`document` result schema](schemas/detail-result.schema.json). Existing `extract()` consumers keep their `records` contract. Output contains plain text and resource references, not executable HTML; render text fields as text. Attachments are not downloaded or parsed, and PDF, Word, OCR, embedded-frame extraction, and automatic article pagination are outside this capability.
 
 Use `node bin/web-extract.mjs catalog --url "<url>"` to find verified website references. Reusable references can guide automatic routing; reported-only references never control it.
 
@@ -38,12 +65,21 @@ Store one version per immutable directory. The current and candidate runtimes ma
 import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
 
 const candidate = await createBundleRuntime({
-  bundleDir: 'vendor/web-extraction-capabilities/0.1.3',
-  expectedVersion: '0.1.3'
+  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
+  expectedVersion: '0.2.0'
 });
 ```
 
 Use `bundle:validate` for a released artifact and `validate` for a source checkout. Central validation does not choose application fallback or promotion. If candidate creation fails, the already-loaded current runtime remains usable.
+
+To run the offline detail consumer after creating a Bundle:
+
+```powershell
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.2.0
+node examples/detail-consumer/run.mjs --bundle dist/bundle --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
+```
+
+Before using details through a bundle runtime, check `typeof candidate.extractDetail === 'function'`; an older Bundle can still load without exposing the new API.
 
 After downloading an archive from a trusted Release, verify its SHA256 against trusted checksum data obtained outside the archive before executing any archived code, including the bundled CLI. `bundle:validate` is an integrity check: it compares the manifest to the exact file and directory tree, rejects extra files, empty directories, and symbolic links, and verifies file hashes and `package.json` identity. It does not establish artifact authenticity by itself.
 
@@ -69,7 +105,7 @@ Without an explicit choice, do not create a scheduled task, download updates, or
 
 ## Website references and capability feedback
 
-When an application encounters an unsupported website type, it should validate the implementation locally, then contribute either a `verifiedTargets` entry for an existing capability or a new generic, platform-family, or explicitly site-specific capability. The contribution must include a public reference URL, verification date, sanitized fixture or repeatable test evidence, and failure diagnostics.
+Applications can [report extraction problems](docs/problem-feedback.md) with sanitized evidence before implementing a fix. When contributing an implementation, validate it locally, then contribute either a `verifiedTargets` entry for an existing capability or a new generic, platform-family, or explicitly site-specific capability. The contribution must include a public reference URL, verification date, sanitized fixture or repeatable test evidence, and failure diagnostics.
 
 After the central repository publishes a stable version, consuming applications check `bundleFormatVersion`, compare `catalogSha256`, inspect added or changed capabilities and website references, rerun URL matching for configured sites, and shadow-test any changed routing before use. Applications that predate this update protocol need a one-time integration change; the central repository cannot modify them remotely. Credentials, cookies, private URLs, and business rules are never contributed.
 
