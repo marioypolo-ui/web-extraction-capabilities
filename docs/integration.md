@@ -16,6 +16,8 @@ Node 应用也可调用 `findCapabilitiesForUrl(url)`。生产路由推荐顺序
 
 `extract({ capabilityId: 'auto', url, ... })` 已实现上述前两步。
 
+以上是列表路由。需要一个文章、公告或政策详情页的正文时，直接使用 `detail` / `extractDetail()`；新通用能力没有特定网站匹配项，`catalog --url` 没有推荐不代表详情入口不可用。
+
 ## 2. 判断页面结构
 
 已有 HTML 时运行：
@@ -48,6 +50,29 @@ JSON API 配置示例：
 
 将配置保存为应用自己的文件，再通过 `--config path/to/config.json` 传入。配置和凭据不提交中央库。
 
+### 详情页全文、表格与资源
+
+```powershell
+node bin/web-extract.mjs detail --url "https://example.test/articles/1"
+node bin/web-extract.mjs detail --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
+```
+
+```js
+import { extractDetail } from '@marioypolo/web-extraction-capabilities';
+
+const result = await extractDetail({ url, html });
+if (result.document) {
+  console.log(result.document.contentText);
+}
+console.error(result.diagnostics);
+```
+
+详情结果为 `{ document, diagnostics, capabilityId, capabilityVersion }`；`document` 包含 `title`、`url`、`publishedAt`、`contentText`、`tables`、`images` 和 `attachments`。失败时为 `null`，并附明确诊断；输出不含可执行 HTML，文字应以纯文本展示。详情全文不受 500 字摘要限制，旧列表 `records` 契约不变。
+
+默认 `config.mode: "auto"` 不启动浏览器；可显式选择 `static`、`json`、`platform` 或 `browser`。自动模式设 `browserFallback: true` 后，还需未取得正文、明确出现 `DYNAMIC_RENDERING_REQUIRED` 且没有其他阻止回退的诊断，才会启动浏览器。单纯正文缺失、HTTP 失败、登录或验证码均不触发回退。JSON 详情使用单个对象的 `itemPath` 和必填的 `fields.content`，正文默认按 `contentFormat: "text"` 解释；确认是 HTML 时设置 `"html"`。静态未知布局可配置正文、标题和日期选择器，但只支持有限选择器子集。
+
+配置、结构化结果、能力边界与离线消费示例见[详情提取](detail-extraction.md)。合成 fixture 测试不代表目标站点已通过在线验证；应用接入时仍应检查正文末尾、表格及资源链接，并保留所有诊断。
+
 ## 4. 固定 Host 与域名迁移
 
 Node API 支持：
@@ -72,7 +97,7 @@ await extract({
 
 ```powershell
 node bin/web-extract.mjs bundle --output dist/bundle
-node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.1.3
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.2.0
 ```
 
 应用复制整个目录并保存 `bundle-manifest.json`。每个版本使用独立且不可变的目录；运行时从应用自己的 vendor 目录导入，不引用兄弟目录，不自动拉取 main。
@@ -81,8 +106,8 @@ node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expe
 import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
 
 const candidate = await createBundleRuntime({
-  bundleDir: 'vendor/web-extraction-capabilities/0.1.3',
-  expectedVersion: '0.1.3'
+  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
+  expectedVersion: '0.2.0'
 });
 ```
 
@@ -96,9 +121,12 @@ const candidate = await createBundleRuntime({
 
 ```powershell
 node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtures/static-list.html
+node examples/detail-consumer/run.mjs --bundle dist/bundle --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
 ```
 
 Bundle 的 `bundle-manifest.json` 包含 `bundleFormatVersion`、`catalogSha256` 和能力摘要。应用只处理自己明确支持的格式版本；遇到更高格式版本时保留当前 Bundle 并通知维护。更新 Bundle 后必须比较新旧能力目录，并为自己保存的全部网站重新执行 URL 匹配；新增或变化的路由先影子验证，再进入生产。
+
+新 Bundle 运行时可暴露 `extractDetail()`。旧 Bundle 仍可加载，调用前检查 `typeof candidate.extractDetail === 'function'`，缺少时由应用明确选择升级或继续旧流程。
 
 ## 6. 国内政务网站直连
 

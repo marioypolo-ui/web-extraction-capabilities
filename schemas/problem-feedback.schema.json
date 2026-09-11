@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marioypolo-ui/web-extraction-capabilities/schemas/problem-feedback.schema.json",
+  "title": "Sanitized offline extraction problem report",
+  "description": "Runtime validation additionally limits serialized JSON to 60000 characters, requires plain bounded JSON data, checks public URLs and credential-shaped content, and parses JSON samples with depth and size limits. No runtime or browser configuration is accepted.",
+  "type": "object",
+  "required": ["schemaVersion", "sanitized", "operation", "symptom", "pageUrl", "libraryVersion", "capabilityId", "capabilityVersion", "target", "sample"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sanitized": { "const": true },
+    "operation": { "enum": ["list", "detail"] },
+    "symptom": { "enum": ["missing-record", "missing-title", "missing-link", "wrong-date", "missing-body", "missing-table", "missing-image", "missing-attachment"] },
+    "pageUrl": { "$ref": "#/$defs/publicUrl" },
+    "libraryVersion": { "$ref": "#/$defs/version" },
+    "capabilityId": { "type": "string", "maxLength": 80, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "capabilityVersion": { "$ref": "#/$defs/version" },
+    "target": {
+      "type": "object",
+      "required": ["title", "url"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 500, "pattern": "\\S" },
+        "url": { "$ref": "#/$defs/publicUrl" }
+      },
+      "additionalProperties": false
+    },
+    "sample": {
+      "type": "object",
+      "required": ["format", "stage", "content"],
+      "properties": {
+        "format": { "enum": ["html", "json"] },
+        "stage": { "enum": ["static", "rendered", "api"] },
+        "content": { "type": "string", "maxLength": 40000, "description": "Sanitized saved HTML or serialized JSON. Empty HTML can reproduce missing content. HTML scripts and event attributes remain inert data and are never executed." }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "format": { "const": "html" } } },
+          "then": { "properties": { "stage": { "enum": ["static", "rendered"] } } },
+          "else": { "properties": { "stage": { "const": "api" } } }
+        }
+      ]
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "contentSelector": { "$ref": "#/$defs/selector" },
+        "titleSelector": { "$ref": "#/$defs/selector" },
+        "dateSelector": { "$ref": "#/$defs/selector" },
+        "itemsPath": { "$ref": "#/$defs/path" },
+        "itemPath": { "anyOf": [{ "const": "" }, { "$ref": "#/$defs/path" }] },
+        "contentFormat": { "enum": ["text", "html"] },
+        "actionUrlTemplate": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "\\{id\\}", "description": "A relative or public HTTP(S) URL with exactly one {id}; runtime validation rejects private addresses and credential query parameters." },
+        "fields": {
+          "type": "object",
+          "properties": {
+            "title": { "$ref": "#/$defs/path" },
+            "url": { "$ref": "#/$defs/path" },
+            "publishedAt": { "$ref": "#/$defs/path" },
+            "summary": { "$ref": "#/$defs/path" },
+            "content": { "$ref": "#/$defs/path" },
+            "images": { "$ref": "#/$defs/path" },
+            "attachments": { "$ref": "#/$defs/path" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "expected": {
+      "type": "object",
+      "properties": {
+        "contentIncludes": { "$ref": "#/$defs/textAssertions" },
+        "tableTextIncludes": { "$ref": "#/$defs/textAssertions" },
+        "imageUrls": { "$ref": "#/$defs/urlAssertions" },
+        "attachmentUrls": { "$ref": "#/$defs/urlAssertions" },
+        "publishedAt": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "\\S" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "sample": { "properties": { "format": { "const": "json" } } }, "operation": { "const": "detail" } } },
+      "then": { "required": ["config"], "properties": { "config": { "required": ["fields"], "properties": { "fields": { "required": ["content"] } } } } }
+    },
+    {
+      "if": { "properties": { "sample": { "properties": { "format": { "const": "json" } } }, "operation": { "const": "list" } } },
+      "then": { "required": ["config"], "properties": { "config": { "required": ["itemsPath", "fields"], "properties": { "fields": { "required": ["title"] } } } } }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "list" } } },
+      "then": {
+        "properties": {
+          "symptom": { "enum": ["missing-record", "missing-title", "missing-link", "wrong-date"] },
+          "expected": { "propertyNames": { "const": "publishedAt" } }
+        }
+      },
+      "else": { "properties": { "symptom": { "not": { "const": "missing-record" } } } }
+    },
+    {
+      "if": { "properties": { "symptom": { "const": "missing-body" } } },
+      "then": { "required": ["expected"], "properties": { "expected": { "required": ["contentIncludes"] } } }
+    },
+    {
+      "if": { "properties": { "symptom": { "const": "missing-table" } } },
+      "then": { "required": ["expected"], "properties": { "expected": { "required": ["tableTextIncludes"] } } }
+    },
+    {
+      "if": { "properties": { "symptom": { "const": "missing-image" } } },
+      "then": { "required": ["expected"], "properties": { "expected": { "required": ["imageUrls"] } } }
+    },
+    {
+      "if": { "properties": { "symptom": { "const": "missing-attachment" } } },
+      "then": { "required": ["expected"], "properties": { "expected": { "required": ["attachmentUrls"] } } }
+    },
+    {
+      "if": { "properties": { "symptom": { "const": "wrong-date" } } },
+      "then": { "required": ["expected"], "properties": { "expected": { "required": ["publishedAt"] } } }
+    }
+  ],
+  "$defs": {
+    "publicUrl": { "type": "string", "minLength": 1, "maxLength": 2048, "format": "uri", "pattern": "^https?://", "description": "Must pass runtime public-host, userinfo and credential-query validation; DNS is not resolved during validation." },
+    "version": { "type": "string", "maxLength": 64, "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },
+    "path": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^(?:[A-Za-z_$][\\w$]*|\\d+)(?:\\.(?:[A-Za-z_$][\\w$]*|\\d+))*$", "description": "Dot-separated data path. Runtime rejects __proto__, prototype and constructor segments." },
+    "selector": { "type": "string", "minLength": 1, "maxLength": 500, "pattern": "\\S", "description": "Runtime permits only tag, #id, .class, [attr], [attr=value], compounds and whitespace descendant selectors." },
+    "textAssertions": { "type": "array", "minItems": 1, "maxItems": 20, "items": { "type": "string", "minLength": 1, "maxLength": 1000, "pattern": "\\S" } },
+    "urlAssertions": { "type": "array", "minItems": 1, "maxItems": 20, "items": { "$ref": "#/$defs/publicUrl" } }
+  }
+}

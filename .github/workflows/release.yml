@@ -21,6 +21,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run validate
+      - run: npm run docs:smoke
+      - run: npm run audit:sensitive
+      - run: npm run audit:history
       - name: Verify tag matches package version
         shell: bash
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
@@ -34,7 +38,7 @@ jobs:
           node dist/web-extraction-capabilities/bin/web-extract.mjs
           bundle:validate
           --bundle dist/web-extraction-capabilities
-          --expected-version 0.1.3
+          --expected-version "$(node -p "require('./package.json').version")"
       - name: Package release
         shell: bash
         run: |

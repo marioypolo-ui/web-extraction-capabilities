@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "sanitized": true,
+  "operation": "detail",
+  "symptom": "missing-body",
+  "pageUrl": "https://example.test/detail/1",
+  "libraryVersion": "0.2.0",
+  "capabilityId": "web-page-detail",
+  "capabilityVersion": "0.2.0",
+  "target": { "title": "Synthetic notice", "url": "https://example.test/detail/1" },
+  "sample": {
+    "format": "html",
+    "stage": "static",
+    "content": "<article><h1>Synthetic notice</h1><p>Complete synthetic body.</p><table><tr><th>Item</th><td>Desk</td></tr></table><img src='/diagram.png' alt='Diagram'><a href='/notice.pdf'>Attachment</a></article>"
+  },
+  "expected": {
+    "contentIncludes": ["Complete synthetic body."],
+    "tableTextIncludes": ["Desk"],
+    "imageUrls": ["https://example.test/diagram.png"],
+    "attachmentUrls": ["https://example.test/notice.pdf"]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sanitized": true,
+  "operation": "list",
+  "symptom": "missing-record",
+  "pageUrl": "https://example.test/notices",
+  "libraryVersion": "0.2.0",
+  "capabilityId": "static-html-list",
+  "capabilityVersion": "0.2.0",
+  "target": { "title": "Synthetic table-row notice", "url": "https://example.test/notice/42" },
+  "sample": {
+    "format": "html",
+    "stage": "static",
+    "content": "<table><tr><td><a href='/notice/42'>Synthetic table-row notice</a></td><td>2026-09-11</td></tr></table>"
+  }
+}

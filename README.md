@@ -1,8 +1,30 @@
 # Web Extraction Capabilities
 
-一个面向独立应用的网页信息获取中央能力库。它把网站类型、识别特征、获取实现、失败诊断、fixture 和测试放在同一版本中。应用负责业务筛选、存储和通知，库只负责把网页转换为统一记录。
+一个面向独立应用的网页信息获取中央能力库。它把网站类型、识别特征、获取实现、失败诊断、fixture 和测试放在同一版本中。应用负责业务筛选、存储和通知，库负责把列表转换为统一记录，或把详情页转换为全文、表格与资源链接。
 
-[English](README.en.md) | [集成指南](docs/integration.md) | [能力开发](docs/capability-authoring.md) | [诊断码](docs/diagnostics.md) | [升级与回滚](docs/upgrades.md)
+[English](README.en.md) | [详情提取](docs/detail-extraction.md) | [问题反馈](docs/problem-feedback.md) | [集成指南](docs/integration.md) | [能力开发](docs/capability-authoring.md) | [诊断码](docs/diagnostics.md) | [升级与回滚](docs/upgrades.md)
+
+## 提取一个详情页
+
+给出文章、公告或政策详情链接，即可运行：
+
+```powershell
+node bin/web-extract.mjs detail --url "https://example.test/articles/1"
+```
+
+将示例 URL 替换为目标链接。`v0.2.0` 新增的 `detail` 返回标题、正文全文、日期、结构化表格、图片地址、附件链接和诊断；全文不受列表摘要的 500 字限制。已有 HTML 可通过 `--html-file` 离线提取。WorkBuddy 等执行 Agent 可从本 README 发现此入口，再按[详情指南](docs/detail-extraction.md)调用，无需用户记住内部源码。
+
+默认不启动浏览器。未知布局可能需要正文选择器，未知 JSON API 需要明确字段映射；浏览器需显式启用并由应用安装 Playwright。新详情能力使用合成测试，尚无新增的真实网站详情验证记录，不保证所有网站都能直接提取。
+
+## 让应用 Agent 接入并反馈问题
+
+可把以下话术直接交给 WorkBuddy 或其他应用 Agent：
+
+> 请使用 https://github.com/marioypolo-ui/web-extraction-capabilities 为我的应用接入网页列表和详情提取。按仓库公开文档选择能力、固定并校验版本；出现漏项或解析错误时，将最小证据脱敏并在本地校验，在已授权的公开反馈范围内按问题 key 补充原单或提交 GitHub 问题。修复版本发布后，按本应用已确认的升级和验收策略处理。
+
+`v0.2.0` 的[问题反馈流程](docs/problem-feedback.md)支持列表漏项、标题/链接/日期错误，以及详情正文、表格、图片和附件问题。应用先运行 `feedback:validate` 和 `feedback:reproduce`，再提交脱敏报告；GitHub 自动复现、运行测试并归并重复问题。中央库维护 Agent 定期处理待修复队列，将修复经测试后发布到 GitHub，并在原 issue 关联版本。
+
+维护队列每小时检查，无变化时保持安静。应用的版本接受、生产验收与通知仍由应用任务负责；离线样本不证明真实浏览器或网络正常，未知网站也不保证都可自动修复。
 
 ## 设计边界
 
@@ -10,7 +32,7 @@
 - 不托管秘密：账号、Cookie、token 和浏览器 Profile 由调用应用保存。
 - 不绕过验证：滑块或验证码返回 `HUMAN_VERIFICATION_REQUIRED`。
 - 应用独立运行：生产应用复制带 SHA256 的固定版本 bundle，不在运行时连接本仓库。
-- 无业务规则：关键词、日期窗口、去重、数据库、飞书和调度不属于本库。
+- 无业务规则：关键词、日期窗口、业务去重、数据库、飞书和应用调度不属于本库。
 
 ## 环境
 
@@ -34,6 +56,9 @@ node bin/web-extract.mjs catalog
 node bin/web-extract.mjs validate --capability static-html-list
 node bin/web-extract.mjs detect --url "https://example.test/notices" --html-file fixtures/static-list.html
 node bin/web-extract.mjs extract --capability static-html-list --url "https://example.test/notices/" --html-file fixtures/static-list.html
+node bin/web-extract.mjs detail --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
+node bin/web-extract.mjs feedback:validate --report examples/problem-feedback/detail.json
+node bin/web-extract.mjs feedback:reproduce --report examples/problem-feedback/detail.json
 node bin/web-extract.mjs bundle --output dist/bundle
 node bin/web-extract.mjs contribution:pack --source examples/capability-contribution --output dist/contribution
 node bin/web-extract.mjs contribution:pack --source examples/website-reference-contribution --output dist/reference
@@ -54,7 +79,7 @@ const result = await extract({
 });
 ```
 
-统一结果：
+列表提取结果（详情使用独立的 `document` 契约，见[详情指南](docs/detail-extraction.md)）：
 
 ```json
 {
@@ -69,13 +94,15 @@ const result = await extract({
   ],
   "diagnostics": [],
   "capabilityId": "static-html-list",
-  "capabilityVersion": "0.1.3"
+  "capabilityVersion": "0.2.0"
 }
 ```
 
 ## 当前能力
 
 `catalog` 提供机器可读清单。v0.1.x 包括静态 HTML、JSON API、SPA API、复杂 JS 浏览器、点击流程、登录会话、人工验证检测、固定 DNS/Host、域名迁移、动作链接解析，以及从真实生产场景迁移的平台家族适配器。
+
+v0.2.0 增加 `web-page-detail`：通用详情全文、表格和资源链接提取。其 `scope` 为 `generic`、`status` 为 `supported`；浏览器路径为需显式启用和安装依赖的条件能力。`verifiedTargets` 初始为空，不能将通用测试解释为任意网站的验证承诺。
 
 浏览器类能力状态为 `conditional`：安装 Playwright 后可执行；未安装时返回 `CAPABILITY_DEPENDENCY_MISSING`。验证码类能力状态为 `human-required`。
 
@@ -97,8 +124,9 @@ node bin/web-extract.mjs catalog --url "https://www.gxufe.edu.cn/www/myweb/level
 
 ```powershell
 node bin/web-extract.mjs bundle --output dist/bundle
-node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.1.3
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.2.0
 node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtures/static-list.html
+node examples/detail-consumer/run.mjs --bundle dist/bundle --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
 ```
 
 应用提交 bundle 中的 `src/`、`capabilities/`、`schemas/`、`package.json` 和 `bundle-manifest.json`，记录版本和总 SHA256。每个版本使用独立且不可变的目录：
@@ -107,8 +135,8 @@ node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtu
 import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
 
 const candidate = await createBundleRuntime({
-  bundleDir: 'vendor/web-extraction-capabilities/0.1.3',
-  expectedVersion: '0.1.3'
+  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
+  expectedVersion: '0.2.0'
 });
 ```
 
@@ -138,7 +166,7 @@ const candidate = await createBundleRuntime({
 
 ## 网站参考与能力回流
 
-应用遇到中央库未覆盖的新网站类型时，应先在应用内实现并用脱敏 fixture、正常路径和失败路径测试验证。验证成功后：
+发现漏取或解析错误时，可先通过[问题反馈](docs/problem-feedback.md)提交脱敏证据，不必先实现修复。若应用已经实现新的解析方法并准备贡献，应先用脱敏 fixture、正常路径和失败路径测试验证，再执行：
 
 1. 能复用现有能力时，在该能力的 `verifiedTargets` 中反馈公开网站名称、URL 匹配规则、验证日期和证据。
 2. 需要新解析方法时，新增 `generic`、`platform-family` 或明确的 `site-specific` 能力，并同时登记网站参考。

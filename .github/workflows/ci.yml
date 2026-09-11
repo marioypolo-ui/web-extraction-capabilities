@@ -28,8 +28,9 @@ jobs:
       - name: Verify reproducible bundles
         shell: bash
         run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
           node bin/web-extract.mjs bundle --output "$RUNNER_TEMP/bundle-one" > "$RUNNER_TEMP/one.json"
-          node "$RUNNER_TEMP/bundle-one/bin/web-extract.mjs" bundle:validate --bundle "$RUNNER_TEMP/bundle-one" --expected-version 0.1.3
+          node "$RUNNER_TEMP/bundle-one/bin/web-extract.mjs" bundle:validate --bundle "$RUNNER_TEMP/bundle-one" --expected-version "$PACKAGE_VERSION"
           node bin/web-extract.mjs bundle --output "$RUNNER_TEMP/bundle-two" > "$RUNNER_TEMP/two.json"
-          node "$RUNNER_TEMP/bundle-two/bin/web-extract.mjs" bundle:validate --bundle "$RUNNER_TEMP/bundle-two" --expected-version 0.1.3
+          node "$RUNNER_TEMP/bundle-two/bin/web-extract.mjs" bundle:validate --bundle "$RUNNER_TEMP/bundle-two" --expected-version "$PACKAGE_VERSION"
           test "$(node -p "require('$RUNNER_TEMP/one.json').bundleSha256")" = "$(node -p "require('$RUNNER_TEMP/two.json').bundleSha256")"

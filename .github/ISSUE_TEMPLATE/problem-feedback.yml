@@ -1,0 +1,27 @@
+name: 网页提取问题反馈
+description: 反馈列表或详情页漏取，提交脱敏样本以自动复现和回归。
+title: "[Extraction feedback] "
+labels: [feedback]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        支持列表标题/链接/日期，以及详情正文/表格/图片/附件问题。
+        将反馈 JSON 粘贴到下面；格式和命令见 [问题反馈指南](https://github.com/marioypolo-ui/web-extraction-capabilities/blob/main/docs/problem-feedback.md)。
+        提交前在本地运行 `feedback:validate`，按返回的 problemKey 搜索已有问题；已有问题请补充样本，不要重复建单。
+        此仓库公开。不要上传账号、Cookie、token、浏览器状态、个人信息或未脱敏文件。
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Feedback JSON
+      description: 粘贴通过 feedback:validate 的完整 JSON。HTML/JSON 样本只作为数据解析。
+      render: json
+    validations:
+      required: true
+  - type: checkboxes
+    id: sanitized
+    attributes:
+      label: Sanitized checks
+      options:
+        - label: 样本是合成内容或已脱敏的公开页面，未包含凭据、浏览器状态或个人信息。
+          required: true

@@ -36,9 +36,33 @@ async function buildInput(options) {
   };
 }
 
+async function readProblemReport(file) {
+  if (typeof file !== 'string' || !file) throw new Error('--report is required');
+  const stat = await fs.stat(file);
+  if (stat.size > 240000) throw new Error('Feedback JSON exceeds the size limit');
+  const text = await fs.readFile(file, 'utf8');
+  if (text.length > 60000) throw new Error('Feedback JSON exceeds the size limit');
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Feedback JSON is malformed');
+  }
+}
+
 async function main() {
   const [command, ...rest] = process.argv.slice(2);
   const options = parseArgs(rest);
+
+  if (command === 'feedback:validate' || command === 'feedback:reproduce') {
+    const { validateProblemReport, reproduceProblem } = await import('../src/problem-feedback.mjs');
+    const report = await readProblemReport(options.report);
+    const result = command === 'feedback:validate'
+      ? validateProblemReport(report) : await reproduceProblem(report);
+    if (command === 'feedback:validate' ? !result.ok : result.status !== 'not-reproduced') {
+      process.exitCode = 1;
+    }
+    return result;
+  }
 
   if (command === 'bundle:validate') {
     const { validateBundle } = await import('../src/bundle-validation.mjs');
@@ -52,6 +76,7 @@ async function main() {
     buildBundle,
     detectCapabilities,
     extract,
+    extractDetail,
     findCapabilitiesForUrl,
     getCatalog,
     packContribution,
@@ -77,6 +102,13 @@ async function main() {
   }
   if (command === 'extract') {
     return extract(await buildInput(options));
+  }
+  if (command === 'detail') {
+    const result = await extractDetail(await buildInput(options));
+    if (!result.document) {
+      process.exitCode = 1;
+    }
+    return result;
   }
   if (command === 'bundle') {
     return buildBundle({ outputDir: path.resolve(options.output || 'dist/bundle') });
