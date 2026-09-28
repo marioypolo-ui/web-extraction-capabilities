@@ -18,9 +18,9 @@ The default does not launch a browser. Unknown layouts may need a content select
 
 Give WorkBuddy or another application agent this request:
 
-> Use https://github.com/marioypolo-ui/web-extraction-capabilities to integrate list and detail extraction into my application. Follow its public documentation, pin and verify the version, and locally validate sanitized minimal evidence when extraction misses or misreads content. Within the authorized scope for public feedback, search by issue key and update the existing issue or submit a new GitHub report. Apply released fixes through this application's agreed upgrade and acceptance policy.
+> Use https://github.com/marioypolo-ui/web-extraction-capabilities to integrate list and detail extraction into my application using a verified, pinned Release. Diagnose failures locally; the application maintenance agent resolves and tests capability gaps before contributing reusable implementations, regression tests, minimal fixtures or website references. Share only content reviewed and authorized for public disclosure. Keep network, account and business-configuration problems in the application. Adopt central releases through the application's own acceptance and rollback policy.
 
-The [Problem feedback workflow](docs/problem-feedback.md) introduced in `v0.2.0` covers missing list records, incorrect titles, links and dates, and detail body, table, image and attachment problems. Applications run `feedback:validate` and `feedback:reproduce` locally before public submission. GitHub validates the sanitized report, reproduces it offline, runs tests, and merges duplicate reports into a canonical issue. The central maintenance agent checks the repair queue hourly, publishes tested fixes to GitHub, and links the fixing version in the original issue. Unchanged state stays quiet.
+Version `v0.3.0` adds verified contribution intake, isolated validation and status contracts, with privacy review before disclosure and no automatic usage uploads. The `v0.2.0` `feedback:validate` and `feedback:reproduce` APIs remain available for local diagnosis; the legacy public report-and-central-repair entrypoint is retired. See [diagnosis and migration](docs/problem-feedback.md). Older pinned Releases do not gain new interfaces automatically. Packaging or static validation does not mean independent tests, merge, publication, or application adoption succeeded.
 
 Application upgrades, production acceptance and notifications remain in the application task. Offline evidence does not verify the live browser, session or network, and automatic repair of every unknown website is not guaranteed.
 
@@ -65,8 +65,8 @@ Store one version per immutable directory. The current and candidate runtimes ma
 import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
 
 const candidate = await createBundleRuntime({
-  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
-  expectedVersion: '0.2.0'
+  bundleDir: 'vendor/web-extraction-capabilities/0.3.0',
+  expectedVersion: '0.3.0'
 });
 ```
 
@@ -75,7 +75,7 @@ Use `bundle:validate` for a released artifact and `validate` for a source checko
 To run the offline detail consumer after creating a Bundle:
 
 ```powershell
-node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.2.0
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.3.0
 node examples/detail-consumer/run.mjs --bundle dist/bundle --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
 ```
 

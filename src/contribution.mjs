@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { safeContributionPath, validateContributionContract } from './contribution-contract.mjs';
+import { reviewContributionDisclosure } from './contribution-privacy.mjs';
 
 import {
   validateCapabilityManifest,
@@ -14,7 +16,8 @@ const FORBIDDEN_SEGMENTS = new Set([
   'node_modules',
   'package.json',
   'package-lock.json',
-  'npm-shrinkwrap.json'
+  'npm-shrinkwrap.json',
+  'contribution-manifest.json'
 ]);
 
 async function listFiles(root, current = root) {
@@ -24,11 +27,11 @@ async function listFiles(root, current = root) {
     const fullPath = path.join(current, entry.name);
     const relative = path.relative(root, fullPath).replaceAll('\\', '/');
     const segments = relative.split('/');
-    if (segments.some((segment) => FORBIDDEN_SEGMENTS.has(segment))) {
-      throw new Error(`forbidden contribution path: ${relative}`);
+    if (!safeContributionPath(relative) || segments.some((segment) => FORBIDDEN_SEGMENTS.has(segment))) {
+      throw new Error('forbidden contribution path');
     }
     if (entry.isSymbolicLink()) {
-      throw new Error(`forbidden contribution path: ${relative} is a symbolic link`);
+      throw new Error('forbidden contribution path: symbolic link');
     }
     if (entry.isDirectory()) {
       files.push(...(await listFiles(root, fullPath)));
@@ -91,10 +94,28 @@ async function readContributionDefinition(sourceDir) {
   };
 }
 
-export async function packContribution({ sourceDir, outputDir }) {
+async function canonicalOutput(target) {
+  try { return await fs.realpath(target); }
+  catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    const parent = path.dirname(target);
+    if (parent === target) throw new Error('OUTPUT_PATH_UNSAFE');
+    return path.join(await canonicalOutput(parent), path.basename(target));
+  }
+}
+
+export async function packContribution({ sourceDir, outputDir, publicationReview }) {
   if (!sourceDir || !outputDir) {
     throw new Error('sourceDir and outputDir are required');
   }
+  if ((await fs.lstat(sourceDir)).isSymbolicLink()) throw new Error('forbidden contribution path: source link');
+  sourceDir = await fs.realpath(sourceDir);
+  outputDir = await canonicalOutput(path.resolve(outputDir));
+  const inside = (parent, child) => {
+    const relative = path.relative(parent, child);
+    return !relative || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+  };
+  if (inside(sourceDir, outputDir) || inside(outputDir, sourceDir)) throw new Error('OUTPUT_PATH_UNSAFE');
   const definition = await readContributionDefinition(sourceDir);
   const files = await listFiles(sourceDir);
   const relativePaths = new Set(files.map((item) => item.relative));
@@ -105,23 +126,50 @@ export async function packContribution({ sourceDir, outputDir }) {
     }
   }
 
-  await fs.rm(outputDir, { recursive: true, force: true });
-  await fs.mkdir(outputDir, { recursive: true });
+  const snapshots = await Promise.all(files.map(async (file) => ({
+    path: file.relative, content: await fs.readFile(file.fullPath)
+  })));
+  const disclosure = reviewContributionDisclosure({ files: snapshots, review: publicationReview });
+  if (disclosure.status === 'rejected') throw new Error(disclosure.reasons.join('; '));
+  const metadataFile = snapshots.find((file) => file.path === 'contribution.json');
+  let metadata = null;
+  if (metadataFile) {
+    try { metadata = JSON.parse(metadataFile.content.toString('utf8')); }
+    catch { throw new Error('CONTRACT_INVALID_JSON'); }
+  }
+  const acceptance = validateContributionContract(metadata);
+  if (metadataFile && !acceptance.ok) throw new Error(acceptance.reasons.join('; '));
+  if (metadataFile) {
+    if ((metadata.changeType === 'website-reference') !== (definition.kind === 'website-reference')) throw new Error('CONTRIBUTION_KIND_MISMATCH');
+    for (const entry of [metadata.entryPoint?.file, ...metadata.verification.command.slice(2),
+      ...metadata.verification.cases.map((item) => item.fixture)].filter(Boolean)) {
+      if (!relativePaths.has(entry)) throw new Error('CONTRIBUTION_EVIDENCE_MISSING');
+    }
+  }
+  await fs.mkdir(path.dirname(outputDir), { recursive: true });
+  try { await fs.mkdir(outputDir); }
+  catch (error) {
+    if (error.code === 'EEXIST') throw new Error('OUTPUT_ALREADY_EXISTS');
+    throw error;
+  }
   const packedFiles = [];
-  for (const file of files) {
-    const content = await fs.readFile(file.fullPath);
-    const destination = path.join(outputDir, ...file.relative.split('/'));
+  for (const file of snapshots) {
+    const content = file.content;
+    const destination = path.join(outputDir, ...file.path.split('/'));
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.writeFile(destination, content);
-    packedFiles.push({ path: file.relative, sha256: sha256(content) });
+    packedFiles.push({ path: file.path, sha256: sha256(content) });
   }
   packedFiles.sort((left, right) => left.path.localeCompare(right.path));
   const result = {
+    contributionFormatVersion: 2,
     contributionKind: definition.kind,
     capabilityId: definition.capabilityId,
     capabilityVersion: definition.capabilityVersion,
     files: packedFiles,
-    packSha256: sha256(JSON.stringify(packedFiles))
+    packSha256: sha256(JSON.stringify(packedFiles)),
+    disclosure,
+    acceptance
   };
   await fs.writeFile(
     path.join(outputDir, 'contribution-manifest.json'),

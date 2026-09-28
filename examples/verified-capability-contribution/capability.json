@@ -1,0 +1,33 @@
+{
+  "id": "synthetic-card-list",
+  "version": "0.1.0",
+  "type": "static-html",
+  "scope": "generic",
+  "status": "supported",
+  "detection": [
+    "Synthetic card element contains a literal data-href"
+  ],
+  "appliesTo": [
+    "Synthetic card elements with literal data-href and plain-text title; ordinary anchors"
+  ],
+  "notAppliesTo": [
+    "Live-site validation, nested title markup, scripts, login, browser-only pages"
+  ],
+  "requirements": {
+    "http": true,
+    "api": false,
+    "browser": false,
+    "login": false,
+    "human": false
+  },
+  "verifiedTargets": [],
+  "implementation": "adapter.mjs",
+  "fixtures": [
+    "new.html",
+    "old.html",
+    "empty.html"
+  ],
+  "tests": [
+    "adapter.test.mjs"
+  ]
+}

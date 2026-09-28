@@ -16,15 +16,15 @@ node bin/web-extract.mjs detail --url "https://example.test/articles/1"
 
 默认不启动浏览器。未知布局可能需要正文选择器，未知 JSON API 需要明确字段映射；浏览器需显式启用并由应用安装 Playwright。新详情能力使用合成测试，尚无新增的真实网站详情验证记录，不保证所有网站都能直接提取。
 
-## 让应用 Agent 接入并反馈问题
+## 让应用 Agent 接入并贡献已验证能力
 
 可把以下话术直接交给 WorkBuddy 或其他应用 Agent：
 
-> 请使用 https://github.com/marioypolo-ui/web-extraction-capabilities 为我的应用接入网页列表和详情提取。按仓库公开文档选择能力、固定并校验版本；出现漏项或解析错误时，将最小证据脱敏并在本地校验，在已授权的公开反馈范围内按问题 key 补充原单或提交 GitHub 问题。修复版本发布后，按本应用已确认的升级和验收策略处理。
+> 请使用 https://github.com/marioypolo-ui/web-extraction-capabilities 为我的应用接入网页列表和详情提取，固定并校验 Release。问题先在应用本地定位，能力缺口由应用维护 agent 修复并验证；只将经过隐私审查且获准公开的可复用实现、回归测试、最小样本或网站参考贡献中央库。网络、账号和业务配置问题留在应用处理，不自动公开报告。中央发布新版本后，按本应用自己的升级、验收和回滚策略采用。
 
-`v0.2.0` 的[问题反馈流程](docs/problem-feedback.md)支持列表漏项、标题/链接/日期错误，以及详情正文、表格、图片和附件问题。应用先运行 `feedback:validate` 和 `feedback:reproduce`，再提交脱敏报告；GitHub 自动复现、运行测试并归并重复问题。中央库维护 Agent 定期处理待修复队列，将修复经测试后发布到 GitHub，并在原 issue 关联版本。
+`v0.3.0` 提供已验证贡献的接收、隔离验收和状态契约；公开前检查隐私并核对授权，正常提取和失败不自动上传使用数据。`v0.2.0` 的 `feedback:validate` 和 `feedback:reproduce` 继续用于本地诊断，旧公开报错代修入口退役；详见[诊断与迁移](docs/problem-feedback.md)。固定旧 Release 不会自动获得新接口。
 
-维护队列每小时检查，无变化时保持安静。应用的版本接受、生产验收与通知仍由应用任务负责；离线样本不证明真实浏览器或网络正常，未知网站也不保证都可自动修复。
+贡献打包和静态校验不等于独立测试通过、合并、发布或应用采用。应用的版本接受、生产验收与通知仍由应用负责；离线样本不证明真实浏览器或网络正常。源码不创建或修改应用/维护调度。
 
 ## 设计边界
 
@@ -124,7 +124,7 @@ node bin/web-extract.mjs catalog --url "https://www.gxufe.edu.cn/www/myweb/level
 
 ```powershell
 node bin/web-extract.mjs bundle --output dist/bundle
-node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.2.0
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.3.0
 node examples/standalone-consumer/run.mjs --bundle dist/bundle --html-file fixtures/static-list.html
 node examples/detail-consumer/run.mjs --bundle dist/bundle --url "https://example.test/articles/1" --html-file fixtures/detail-article.html
 ```
@@ -135,8 +135,8 @@ node examples/detail-consumer/run.mjs --bundle dist/bundle --url "https://exampl
 import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
 
 const candidate = await createBundleRuntime({
-  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
-  expectedVersion: '0.2.0'
+  bundleDir: 'vendor/web-extraction-capabilities/0.3.0',
+  expectedVersion: '0.3.0'
 });
 ```
 
@@ -189,7 +189,7 @@ node bin/web-extract.mjs contribution:pack --source examples/capability-contribu
 node bin/web-extract.mjs contribution:pack --source examples/website-reference-contribution --output dist/reference
 ```
 
-中央 CI 自动检查 schema、测试、文档命令、敏感信息和 bundle 可复现性。自动合并仅对可信作者和受限路径开放；核心运行时、CI、依赖、权限和许可证始终需要人工审核。详见[贡献指南](CONTRIBUTING.md)。
+中央 CI 检查 schema、测试、文档命令、敏感信息、bundle 可复现性和真实隔离验收。v0.3.0 停用旧的可信作者/路径自动合并入口；贡献独立验收通过后仍需集成审阅，不能仅凭作者或 CI 通过自动合并。正式发布等待同提交的隔离验收通过。详见[贡献指南](CONTRIBUTING.md)。
 
 ## 许可证
 

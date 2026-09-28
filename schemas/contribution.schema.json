@@ -1,0 +1,503 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marioypolo-ui/web-extraction-capabilities/schemas/contribution.schema.json",
+  "title": "Verified contribution metadata v1",
+  "description": "Shape validation only. Runtime also enforces bounded JSON, unique case IDs, privacy, file integrity, disclosure review and independent isolated verification. Schema success is not acceptance.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "changeType": {
+      "enum": [
+        "new-capability",
+        "capability-fix",
+        "website-reference"
+      ]
+    },
+    "base": {
+      "type": "object",
+      "properties": {
+        "capabilityId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "capabilityVersion": {
+          "$ref": "#/$defs/version"
+        },
+        "libraryVersion": {
+          "$ref": "#/$defs/version"
+        }
+      },
+      "required": [
+        "capabilityId",
+        "capabilityVersion",
+        "libraryVersion"
+      ],
+      "additionalProperties": false
+    },
+    "targetType": {
+      "$ref": "#/$defs/identifier"
+    },
+    "appliesTo": {
+      "$ref": "#/$defs/scope"
+    },
+    "notAppliesTo": {
+      "$ref": "#/$defs/scope"
+    },
+    "conditions": {
+      "type": "object",
+      "properties": {
+        "network": {
+          "const": "offline"
+        },
+        "governmentDirect": {
+          "const": true
+        },
+        "login": {
+          "type": "boolean"
+        },
+        "human": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "network",
+        "governmentDirect",
+        "login",
+        "human"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 0,
+      "description": "External dependency contributions require a separately reviewed pinned environment; this protocol revision does not install packages."
+    },
+    "entryPoint": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/path"
+            },
+            {
+              "pattern": "\\.mjs$"
+            }
+          ]
+        },
+        "export": {
+          "type": "string",
+          "pattern": "^[A-Za-z_$][\\w$]*$"
+        },
+        "signature": {
+          "const": "input-v1"
+        }
+      },
+      "required": [
+        "file",
+        "export",
+        "signature"
+      ],
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "const": "node"
+            },
+            {
+              "const": "--test"
+            }
+          ],
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/path"
+              },
+              {
+                "pattern": "\\.test\\.mjs$"
+              }
+            ]
+          }
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/case"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "command",
+        "cases"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "changeType",
+    "base",
+    "targetType",
+    "appliesTo",
+    "notAppliesTo",
+    "conditions",
+    "dependencies",
+    "verification"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,79}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[\\w.-]+)?$"
+    },
+    "path": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^(?!(?:.*\\/)?(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))(?:[A-Za-z0-9_-](?:[A-Za-z0-9_.-]*[A-Za-z0-9_-])?/)*[A-Za-z0-9_-](?:[A-Za-z0-9_.-]*[A-Za-z0-9_-])?$"
+    },
+    "publicUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://",
+      "description": "Runtime additionally rejects credentials, private hosts and sensitive query values."
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000,
+        "pattern": "\\S"
+      },
+      "minItems": 1,
+      "maxItems": 50
+    },
+    "mapping": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!(?:.*\\.)(?:__proto__|prototype|constructor)(?:\\.|$))(?!(?:__proto__|prototype|constructor)(?:\\.|$))(?:[A-Za-z_$][\\w$]*|\\d+)(?:\\.(?:[A-Za-z_$][\\w$]*|\\d+))*$"
+    },
+    "codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+      }
+    },
+    "record": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "url": {
+          "$ref": "#/$defs/publicUrl"
+        },
+        "publishedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "auto",
+            "static",
+            "json"
+          ]
+        },
+        "contentSelector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Runtime validates the supported offline selector grammar."
+        },
+        "titleSelector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Runtime validates the supported offline selector grammar."
+        },
+        "dateSelector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Runtime validates the supported offline selector grammar."
+        },
+        "itemsPath": {
+          "$ref": "#/$defs/mapping"
+        },
+        "itemPath": {
+          "anyOf": [
+            {
+              "const": ""
+            },
+            {
+              "$ref": "#/$defs/mapping"
+            }
+          ]
+        },
+        "fields": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "$ref": "#/$defs/mapping"
+            },
+            "url": {
+              "$ref": "#/$defs/mapping"
+            },
+            "publishedAt": {
+              "$ref": "#/$defs/mapping"
+            },
+            "summary": {
+              "$ref": "#/$defs/mapping"
+            },
+            "content": {
+              "$ref": "#/$defs/mapping"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "contentFormat": {
+          "enum": [
+            "text",
+            "html"
+          ]
+        },
+        "actionUrlTemplate": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Public HTTP(S) URL containing exactly one {id}; runtime validates URL/privacy."
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "case": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "fixture": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/path"
+            },
+            {
+              "pattern": "\\.(html|json)$"
+            }
+          ]
+        },
+        "operation": {
+          "enum": [
+            "list",
+            "detail"
+          ]
+        },
+        "url": {
+          "$ref": "#/$defs/publicUrl"
+        },
+        "baselineExpectation": {
+          "enum": [
+            "passes",
+            "fails"
+          ]
+        },
+        "config": {
+          "$ref": "#/$defs/config"
+        },
+        "expected": {}
+      },
+      "required": [
+        "id",
+        "fixture",
+        "operation",
+        "url",
+        "baselineExpectation",
+        "expected"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "list"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/record"
+                    }
+                  },
+                  "diagnosticCodes": {
+                    "$ref": "#/$defs/codes"
+                  }
+                },
+                "required": [
+                  "records",
+                  "diagnosticCodes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "detail"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "type": "object",
+                "properties": {
+                  "document": {
+                    "$ref": "./detail-result.schema.json#/properties/document"
+                  },
+                  "diagnosticCodes": {
+                    "$ref": "#/$defs/codes"
+                  }
+                },
+                "required": [
+                  "document",
+                  "diagnosticCodes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "changeType": {
+            "const": "website-reference"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "entryPoint"
+          ]
+        },
+        "properties": {
+          "verification": {
+            "properties": {
+              "cases": {
+                "items": {
+                  "properties": {
+                    "baselineExpectation": {
+                      "const": "passes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "required": [
+          "entryPoint"
+        ],
+        "properties": {
+          "verification": {
+            "properties": {
+              "cases": {
+                "contains": {
+                  "properties": {
+                    "baselineExpectation": {
+                      "const": "fails"
+                    }
+                  },
+                  "required": [
+                    "baselineExpectation"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "changeType": {
+            "const": "capability-fix"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verification": {
+            "properties": {
+              "cases": {
+                "contains": {
+                  "properties": {
+                    "baselineExpectation": {
+                      "const": "passes"
+                    }
+                  },
+                  "required": [
+                    "baselineExpectation"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

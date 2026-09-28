@@ -97,7 +97,7 @@ await extract({
 
 ```powershell
 node bin/web-extract.mjs bundle --output dist/bundle
-node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.2.0
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.3.0
 ```
 
 应用复制整个目录并保存 `bundle-manifest.json`。每个版本使用独立且不可变的目录；运行时从应用自己的 vendor 目录导入，不引用兄弟目录，不自动拉取 main。
@@ -106,8 +106,8 @@ node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expe
 import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
 
 const candidate = await createBundleRuntime({
-  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
-  expectedVersion: '0.2.0'
+  bundleDir: 'vendor/web-extraction-capabilities/0.3.0',
+  expectedVersion: '0.3.0'
 });
 ```
 
@@ -135,5 +135,7 @@ Bundle 的 `bundle-manifest.json` 包含 `bundleFormatVersion`、`catalogSha256`
 中央库只规定契约，不负责政府站点分类，也不修改 fetch 行为。若应用替换进程级全局 dispatcher，中央库无法保证路由选择；应用必须自行执行直连和逐主机验证。
 
 ## 7. 业务层职责
+
+应用已修复能力的回流接口、隐私审查与状态迁移见[消费方贡献交接清单](consumer-contribution-handoff.md)。
 
 调用应用负责关键词、日期范围、去重、持久化、告警、定时运行、代理策略和凭据生命周期。中央库的 `publishedAt` 可以为空，应用不得仅因日期不可信就假设记录不存在。

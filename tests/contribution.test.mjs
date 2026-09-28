@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { packContribution } from '../src/index.mjs';
+import { disclosureDigest } from '../src/contribution-privacy.mjs';
 
 async function makeCapability(root) {
   const source = path.join(root, 'sample-capability');
@@ -131,4 +132,54 @@ test('contribution pack rejects a manifest outside the public schema', async () 
     () => packContribution({ sourceDir, outputDir: path.join(root, 'packed') }),
     /scope must be one of/
   );
+});
+
+test('legacy packs stay local and require evidence; self-reported receipts grant no acceptance', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'web-cap-local-'));
+  const sourceDir = await makeCapability(root);
+  await fs.writeFile(path.join(sourceDir, 'application-verification.json'), '{"passed":true}');
+  const packed = await packContribution({ sourceDir, outputDir: path.join(root, 'out') });
+  assert.equal(packed.acceptance.status, 'needs-evidence');
+  assert.equal(packed.disclosure.publicReady, false);
+  assert.equal(packed.disclosure.status, 'local-only');
+});
+
+test('privacy rejection occurs before any output is created and does not echo sensitive values', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'web-cap-private-'));
+  const sourceDir = await makeCapability(root);
+  await fs.writeFile(path.join(sourceDir, 'fixture.html'), '<p>email: synthetic.person@private.invalid</p>');
+  const outputDir = path.join(root, 'out');
+  await assert.rejects(() => packContribution({ sourceDir, outputDir }), (error) => {
+    assert.match(error.message, /PRIVATE_DATA_DETECTED/);
+    assert.equal(error.message.includes('synthetic.person'), false);
+    return true;
+  });
+  await assert.rejects(fs.access(outputDir), { code: 'ENOENT' });
+});
+
+test('packing cannot erase the source, an ancestor, or an existing output directory', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'web-cap-paths-'));
+  const sourceDir = await makeCapability(root);
+  for (const outputDir of [sourceDir, root, path.join(sourceDir, 'out')]) {
+    await assert.rejects(() => packContribution({ sourceDir, outputDir }), /OUTPUT_PATH_UNSAFE/);
+    assert.ok(await fs.readFile(path.join(sourceDir, 'fixture.html'), 'utf8'));
+  }
+  const outputDir = path.join(root, 'existing'); await fs.mkdir(outputDir);
+  await fs.writeFile(path.join(outputDir, 'keep.txt'), 'preserve');
+  await assert.rejects(() => packContribution({ sourceDir, outputDir }), /OUTPUT_ALREADY_EXISTS/);
+  assert.equal(await fs.readFile(path.join(outputDir, 'keep.txt'), 'utf8'), 'preserve');
+});
+
+test('exact disclosure review permits publication eligibility but not central verification', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'web-cap-review-'));
+  const sourceDir = await makeCapability(root);
+  const files = await Promise.all((await fs.readdir(sourceDir)).map(async (name) => ({
+    path: name, content: await fs.readFile(path.join(sourceDir, name))
+  })));
+  const packed = await packContribution({ sourceDir, outputDir: path.join(root, 'out'), publicationReview: {
+    schemaVersion: 1, authorization: 'public-contribution', reviewed: true,
+    containsPrivateData: false, contentSha256: disclosureDigest(files)
+  } });
+  assert.equal(packed.disclosure.publicReady, true);
+  assert.equal(packed.acceptance.status, 'needs-evidence');
 });

@@ -1,6 +1,6 @@
 {
   "name": "@marioypolo/web-extraction-capabilities",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Reusable, diagnosable web extraction capabilities for independent applications.",
   "keywords": [
     "web-extraction",
@@ -52,6 +52,8 @@
   ],
   "scripts": {
     "test": "node --test",
+    "test:contribution-isolation": "node scripts/contribution-isolation-acceptance.mjs",
+    "schema:validate": "node scripts/validate-contribution-schemas.mjs",
     "validate": "node bin/web-extract.mjs validate",
     "bundle": "node bin/web-extract.mjs bundle --output dist/bundle",
     "audit:sensitive": "node scripts/check-sensitive.mjs",

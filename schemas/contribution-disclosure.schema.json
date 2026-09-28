@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marioypolo-ui/web-extraction-capabilities/schemas/contribution-disclosure.schema.json",
+  "title": "Content-bound publication review v1",
+  "description": "Operator attestation only; not proof of consent or complete anonymization. Runtime verifies the exact content digest and scans actual files.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "authorization": {
+      "const": "public-contribution"
+    },
+    "reviewed": {
+      "const": true
+    },
+    "containsPrivateData": {
+      "const": false
+    },
+    "contentSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "authorization",
+    "reviewed",
+    "containsPrivateData",
+    "contentSha256"
+  ],
+  "additionalProperties": false
+}

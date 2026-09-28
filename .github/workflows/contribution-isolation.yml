@@ -1,0 +1,87 @@
+name: Contribution isolation acceptance
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      node_image_digest:
+        description: Reviewed official node image digest (64 lowercase hex digits)
+        required: true
+        type: string
+      baseline_archive_sha256:
+        description: Trusted v0.2.0 Release archive SHA256
+        required: true
+        type: string
+      baseline_bundle_sha256:
+        description: Trusted v0.2.0 bundleSha256
+        required: true
+        type: string
+      baseline_manifest_sha256:
+        description: Trusted v0.2.0 exact manifest file SHA256
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare pinned public dependencies separately from contribution execution
+        shell: bash
+        env:
+          NODE_IMAGE_DIGEST: ${{ inputs.node_image_digest || '25330af3531fb5e23318554a0aa911125b6e91b1b777edf7655501d207c067a2' }}
+          BASELINE_ARCHIVE_SHA256: ${{ inputs.baseline_archive_sha256 || '9263a1b87a1563f1652053b8eb333e8f0c1afa7216b5ad56efc3721cceb036c6' }}
+          BASELINE_BUNDLE_SHA256: ${{ inputs.baseline_bundle_sha256 || '9d7afe3cc0e8859d6a3f4eab4497b45c1cbcd8e003c37ad7e17ccdc155fe24d4' }}
+          BASELINE_MANIFEST_SHA256: ${{ inputs.baseline_manifest_sha256 || '805ceccdceaf1ce74fee34d4dc1f47c690caa4fac3f66b68458c925692d87b58' }}
+        run: |
+          set -euo pipefail
+          for pin in "$NODE_IMAGE_DIGEST" "$BASELINE_ARCHIVE_SHA256" "$BASELINE_BUNDLE_SHA256" "$BASELINE_MANIFEST_SHA256"; do
+            [[ "$pin" =~ ^[a-f0-9]{64}$ ]] || exit 1
+          done
+          export DOCKER_CONFIG="$RUNNER_TEMP/contribution-public-image-config"
+          mkdir -p "$DOCKER_CONFIG"
+          docker pull "node@sha256:$NODE_IMAGE_DIGEST"
+          IMAGE_ID=$(docker image inspect --format '{{.Id}}' "node@sha256:$NODE_IMAGE_DIGEST")
+          [[ "$IMAGE_ID" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 1
+          echo "CONTRIBUTION_IMAGE_ID=$IMAGE_ID" >> "$GITHUB_ENV"
+          curl --fail --location --proto '=https' --proto-redir '=https' --max-time 120 --output "$RUNNER_TEMP/baseline.tgz" \
+            'https://github.com/marioypolo-ui/web-extraction-capabilities/releases/download/v0.2.0/web-extraction-capabilities-v0.2.0.tgz'
+          printf '%s  %s\n' "$BASELINE_ARCHIVE_SHA256" "$RUNNER_TEMP/baseline.tgz" | sha256sum --check --status
+          python3 - <<'PY'
+          import os, pathlib, tarfile
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'contribution-baseline'
+          root.mkdir()
+          with tarfile.open(pathlib.Path(os.environ['RUNNER_TEMP']) / 'baseline.tgz', 'r:gz') as archive:
+              members = archive.getmembers()
+              if len(members) > 1500 or sum(m.size for m in members) > 33554432:
+                  raise ValueError('BASELINE_ARCHIVE_SIZE_LIMIT')
+              for member in members:
+                  parts = pathlib.PurePosixPath(member.name).parts
+                  if not parts or parts[0] != 'web-extraction-capabilities' or '..' in parts or '\\' in member.name or not (member.isfile() or member.isdir()):
+                      raise ValueError('BASELINE_ARCHIVE_PATH_INVALID')
+              archive.extractall(root, members=members, filter='data')
+          PY
+          printf '%s  %s\n' "$BASELINE_MANIFEST_SHA256" "$RUNNER_TEMP/contribution-baseline/web-extraction-capabilities/bundle-manifest.json" | sha256sum --check --status
+      - name: Run repository regression tests
+        run: npm test
+      - name: Run real isolation and contribution acceptance without publish credentials
+        shell: bash
+        env:
+          BASELINE_BUNDLE_SHA256: ${{ inputs.baseline_bundle_sha256 || '9d7afe3cc0e8859d6a3f4eab4497b45c1cbcd8e003c37ad7e17ccdc155fe24d4' }}
+          BASELINE_MANIFEST_SHA256: ${{ inputs.baseline_manifest_sha256 || '805ceccdceaf1ce74fee34d4dc1f47c690caa4fac3f66b68458c925692d87b58' }}
+        run: |
+          set -euo pipefail
+          npm run test:contribution-isolation -- \
+            --image "$CONTRIBUTION_IMAGE_ID" \
+            --baseline "$RUNNER_TEMP/contribution-baseline/web-extraction-capabilities" \
+            --baseline-sha256 "$BASELINE_BUNDLE_SHA256" \
+            --baseline-manifest-sha256 "$BASELINE_MANIFEST_SHA256"

@@ -2,25 +2,42 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/contribution-acceptance]
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
+  isolation-acceptance:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/contribution-isolation.yml
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Validate contribution schemas with a pinned standards engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA_TOOLS="$RUNNER_TEMP/contribution-schema-tools"
+          mkdir -p "$SCHEMA_TOOLS"
+          touch "$SCHEMA_TOOLS/user.npmrc" "$SCHEMA_TOOLS/global.npmrc"
+          npm install --prefix "$SCHEMA_TOOLS" --ignore-scripts --no-audit --no-fund --update-notifier=false \
+            --registry https://registry.npmjs.org \
+            --userconfig "$SCHEMA_TOOLS/user.npmrc" --globalconfig "$SCHEMA_TOOLS/global.npmrc" \
+            ajv@8.17.1 ajv-formats@3.0.1
+          npm run schema:validate -- "$SCHEMA_TOOLS"
       - run: npm run validate
       - run: npm run docs:smoke
       - run: npm run audit:sensitive

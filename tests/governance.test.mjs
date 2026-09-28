@@ -25,31 +25,35 @@ test('CI enforces tests, docs smoke, catalog validation, and sensitive-content a
   assert.match(workflow, /npm run docs:smoke/);
   assert.match(workflow, /npm run audit:sensitive/);
   assert.match(workflow, /npm run audit:history/);
+  assert.match(workflow, /npm run schema:validate/);
+  assert.match(workflow, /ajv@8\.17\.1 ajv-formats@3\.0\.1/);
+  assert.match(workflow, /--ignore-scripts/);
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /push:/);
 });
 
-test('trusted auto-merge workflow never checks out or executes pull request code', () => {
+test('legacy author/path auto-merge cannot bypass independent contribution acceptance', () => {
   const workflow = fs.readFileSync(
     path.join(root, '.github/workflows/trusted-auto-merge.yml'),
     'utf8'
   );
 
-  assert.match(workflow, /workflow_run:/);
-  assert.match(workflow, /TRUSTED_CAPABILITY_AUTHORS/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /permissions: \{\}/);
+  assert.match(workflow, /LEGACY_AUTO_MERGE_DISABLED/);
+  assert.doesNotMatch(workflow, /workflow_run:|TRUSTED_CAPABILITY_AUTHORS|GH_TOKEN|gh pr merge|contents: write|pull-requests: write/);
   assert.doesNotMatch(workflow, /actions\/checkout/);
   assert.doesNotMatch(workflow, /npm (?:test|install|ci)/);
 });
 
-test('problem feedback executes default-branch code and treats issue text only as event data', () => {
+test('retired problem feedback cannot execute submissions, read event samples or acquire write credentials', () => {
   const workflow = fs.readFileSync(path.join(root, '.github/workflows/problem-feedback.yml'), 'utf8');
-  assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
-  assert.match(workflow, /persist-credentials: false/);
-  assert.match(workflow, /queue: max/);
-  assert.match(workflow, /npm test/);
-  assert.match(workflow, /--event "\$GITHUB_EVENT_PATH"/);
-  assert.match(workflow, /issues: write/);
+  assert.match(workflow, /permissions: \{\}/);
+  assert.match(workflow, /LEGACY_PUBLICATION_DISABLED/);
+  assert.doesNotMatch(workflow, /actions\/checkout|GITHUB_EVENT_PATH|GH_TOKEN|upload-artifact/);
+  assert.doesNotMatch(workflow, /npm (?:test|install|ci)|problem-intake\.mjs/);
+  assert.doesNotMatch(workflow, /issues: write|contents: read/);
   assert.doesNotMatch(workflow, /\$\{\{[^\n}]*(?:issue\.body|head\.ref|head\.sha)/);
   assert.doesNotMatch(workflow, /pull_request_target|contents: write|id-token: write|secrets\./);
 });
