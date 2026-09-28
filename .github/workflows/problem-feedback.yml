@@ -1,81 +1,18 @@
 name: Problem feedback
 
+# Keep this workflow identity and previous run history. It no longer ingests reports.
 on:
-  issues:
-    types: [opened, edited, reopened]
-  issue_comment:
-    types: [created, edited]
   workflow_dispatch:
-    inputs:
-      issue_number:
-        description: Feedback issue number to replay
-        required: true
-        type: string
-      comment_id:
-        description: Optional comment containing a new sample on the same issue
-        required: false
-        type: string
 
-permissions:
-  contents: read
-  issues: write
-
-concurrency:
-  group: problem-feedback-${{ github.repository }}
-  cancel-in-progress: false
-  queue: max
+permissions: {}
 
 jobs:
-  reproduce:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.actor != 'github-actions[bot]' &&
-      !github.event.issue.pull_request &&
-      (contains(github.event.issue.labels.*.name, 'feedback') ||
-      startsWith(github.event.issue.title, '[Extraction feedback')) &&
-      (github.event_name != 'issue_comment' || contains(github.event.comment.body, '### Feedback JSON')))
+  migration:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 1
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Validate data and reproduce offline
-        id: prepare
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Explain application-owned diagnosis
         shell: bash
         run: |
-          set -euo pipefail
-          node scripts/problem-intake.mjs prepare --event "$GITHUB_EVENT_PATH" --output "$RUNNER_TEMP/problem-feedback"
-          echo "valid=$(node -p "require('$RUNNER_TEMP/problem-feedback/receipt.json').status !== 'invalid'")" >> "$GITHUB_OUTPUT"
-      - name: Run regression tests
-        id: regression
-        if: steps.prepare.outputs.valid == 'true'
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          npm test 2>&1 | tee "$RUNNER_TEMP/problem-feedback/regression.log"
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.prepare.outcome == 'success'
-        with:
-          name: problem-feedback-${{ github.event.issue.number || inputs.issue_number }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/problem-feedback
-          retention-days: 30
-      - name: Merge duplicates and queue maintenance
-        if: always() && steps.prepare.outcome == 'success'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REGRESSION_OUTCOME: ${{ steps.regression.outcome }}
-        shell: bash
-        run: |
-          status=success
-          if [ "$REGRESSION_OUTCOME" = failure ] || [ "$REGRESSION_OUTCOME" = cancelled ]; then status=failure; fi
-          node scripts/problem-intake.mjs publish --output "$RUNNER_TEMP/problem-feedback" --regression "$status"
+          printf '%s\n' '{"ok":false,"status":"application-owned","reason":"LEGACY_PUBLICATION_DISABLED","autoSubmit":false,"nextAction":"resolve-and-verify-in-application"}'
+          printf '%s\n' 'Legacy reports remain historical evidence. Use local feedback:validate and feedback:reproduce; contribute a verified implementation or website reference after privacy review.'

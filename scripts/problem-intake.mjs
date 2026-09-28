@@ -230,6 +230,10 @@ async function upsertReceipt(client, number, body, commentMarker = RECEIPT_MARKE
 }
 
 export async function publishProblem({ outputDir, regression, client, repository, environment = process.env }) {
+  // Retained only for explicitly supplied historical transports (including local
+  // replay tests). Default invocation cannot create a credentialed GitHub client.
+  if (!client) return { ok: false, status: 'application-owned',
+    reason: 'LEGACY_PUBLICATION_DISABLED', autoSubmit: false };
   if (!['success', 'failure'].includes(regression)) throw new Error('Regression result must be success or failure.');
   const receipt = JSON.parse(await fs.readFile(path.join(outputDir, 'receipt.json'), 'utf8'));
   const context = JSON.parse(await fs.readFile(path.join(outputDir, 'context.json'), 'utf8'));
@@ -306,6 +310,15 @@ export async function publishProblem({ outputDir, regression, client, repository
 
 async function main() {
   const [command, ...args] = process.argv.slice(2);
+  // Historical helpers remain for replay/compatibility tests. The public CLI no
+  // longer reads events, credentials or reports, writes artifacts, or mutates issues.
+  if (command === 'prepare' || command === 'publish') {
+    process.exitCode = 1;
+    process.stdout.write(`${JSON.stringify({ ok: false, status: 'application-owned',
+      reason: 'LEGACY_PUBLICATION_DISABLED', autoSubmit: false,
+      nextAction: 'resolve-and-verify-in-application' })}\n`);
+    return;
+  }
   const flags = {};
   for (let index = 0; index < args.length; index += 2) {
     if (!['--event', '--output', '--regression'].includes(args[index]) || !args[index + 1] || flags[args[index]]) throw new Error('Invalid intake arguments.');

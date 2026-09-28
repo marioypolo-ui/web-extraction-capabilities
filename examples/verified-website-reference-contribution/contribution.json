@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "changeType": "website-reference",
+  "base": {
+    "capabilityId": "static-html-list",
+    "capabilityVersion": "0.1.1",
+    "libraryVersion": "0.2.0"
+  },
+  "targetType": "static-html",
+  "appliesTo": [
+    "Synthetic public notice list"
+  ],
+  "notAppliesTo": [
+    "Unverified real websites"
+  ],
+  "conditions": {
+    "network": "offline",
+    "governmentDirect": true,
+    "login": false,
+    "human": false
+  },
+  "dependencies": [],
+  "verification": {
+    "command": [
+      "node",
+      "--test",
+      "reference.test.mjs"
+    ],
+    "cases": [
+      {
+        "id": "public-notice",
+        "fixture": "fixture.html",
+        "operation": "list",
+        "url": "https://example.test/notices",
+        "baselineExpectation": "passes",
+        "expected": {
+          "records": [
+            {
+              "title": "Synthetic public notice",
+              "url": "https://example.test/notices/1"
+            }
+          ],
+          "diagnosticCodes": []
+        }
+      }
+    ]
+  }
+}

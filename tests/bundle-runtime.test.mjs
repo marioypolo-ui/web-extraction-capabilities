@@ -93,6 +93,11 @@ test('standalone runtime exposes detail extraction and feedback replay without s
   const report = JSON.parse(await fs.readFile(path.join(bundleDir, 'examples', 'problem-feedback', 'detail.json'), 'utf8'));
   assert.equal(runtime.validateProblemReport(report).ok, true);
   assert.equal((await runtime.reproduceProblem(report)).status, 'not-reproduced');
+  assert.equal(runtime.classifyProblem({ diagnosticCodes: ['HTTP_ERROR'] }).category, 'site-network-failure');
+  assert.equal(runtime.validateContributionContract(null).status, 'needs-evidence');
+  assert.equal(runtime.contributionProtocol.schemaVersion, 1);
+  assert.equal(runtime.contributionProtocol.receiptSchema, 'schemas/contribution-receipt.schema.json');
+  assert.equal((await runtime.validateContribution({ contributionDir: path.join(bundleDir, 'missing-contribution') })).status, 'rejected');
 });
 
 test('a trusted older-style bundle without the optional detail API still loads', async () => {
@@ -101,11 +106,18 @@ test('a trusted older-style bundle without the optional detail API still loads',
   const source = await fs.readFile(entry, 'utf8');
   await fs.writeFile(entry, source
     .replace(/^export \{ extractDetail \}.*\r?\n/m, '')
-    .replace(/^export \{ validateProblemReport, reproduceProblem \}.*\r?\n/m, ''), 'utf8');
+    .replace(/^export \{ validateProblemReport, reproduceProblem \}.*\r?\n/m, '')
+    .replace(/^export \{ classifyProblem \}.*\r?\n/m, '')
+    .replace(/^export \{ validateContribution \}.*\r?\n/m, '')
+    .replace(/^export \{ CONTRIBUTION_PROTOCOL, validateContributionContract \}.*\r?\n/m, ''), 'utf8');
   const runtime = await createBundleRuntime({ bundleDir, expectedVersion: LIBRARY_VERSION, validate: false });
   assert.equal(runtime.extractDetail, undefined);
   assert.equal(runtime.validateProblemReport, undefined);
   assert.equal(runtime.reproduceProblem, undefined);
+  assert.equal(runtime.classifyProblem, undefined);
+  assert.equal(runtime.validateContribution, undefined);
+  assert.equal(runtime.validateContributionContract, undefined);
+  assert.equal(runtime.contributionProtocol, undefined);
   assert.equal((await runtime.extract(staticInput)).records.length, 2);
 });
 

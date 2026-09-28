@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "changeType": "new-capability",
+  "base": {
+    "capabilityId": "static-html-list",
+    "capabilityVersion": "0.1.1",
+    "libraryVersion": "0.2.0"
+  },
+  "targetType": "static-html",
+  "appliesTo": [
+    "Synthetic card elements with literal data-href and plain-text title; ordinary anchors"
+  ],
+  "notAppliesTo": [
+    "Live-site validation, nested title markup, scripts, login, browser-only pages"
+  ],
+  "conditions": {
+    "network": "offline",
+    "governmentDirect": true,
+    "login": false,
+    "human": false
+  },
+  "dependencies": [],
+  "entryPoint": {
+    "file": "adapter.mjs",
+    "export": "extractCards",
+    "signature": "input-v1"
+  },
+  "verification": {
+    "command": [
+      "node",
+      "--test",
+      "adapter.test.mjs"
+    ],
+    "cases": [
+      {
+        "id": "new-card",
+        "fixture": "new.html",
+        "operation": "list",
+        "url": "https://example.test/",
+        "baselineExpectation": "fails",
+        "expected": {
+          "records": [
+            {
+              "title": "Synthetic card",
+              "url": "https://example.test/records/1"
+            }
+          ],
+          "diagnosticCodes": []
+        }
+      },
+      {
+        "id": "old-link",
+        "fixture": "old.html",
+        "operation": "list",
+        "url": "https://example.test/",
+        "baselineExpectation": "passes",
+        "expected": {
+          "records": [
+            {
+              "title": "Synthetic old link",
+              "url": "https://example.test/records/old"
+            }
+          ],
+          "diagnosticCodes": []
+        }
+      },
+      {
+        "id": "empty",
+        "fixture": "empty.html",
+        "operation": "list",
+        "url": "https://example.test/",
+        "baselineExpectation": "passes",
+        "expected": {
+          "records": [],
+          "diagnosticCodes": [
+            "ZERO_RECORDS"
+          ]
+        }
+      }
+    ]
+  }
+}

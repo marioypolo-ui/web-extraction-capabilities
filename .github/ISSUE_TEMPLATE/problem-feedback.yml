@@ -1,27 +1,19 @@
-name: 网页提取问题反馈
-description: 反馈列表或详情页漏取，提交脱敏样本以自动复现和回归。
-title: "[Extraction feedback] "
-labels: [feedback]
+name: 历史问题反馈迁移说明
+description: 未修复问题留在应用本地；中央接收已验证且获准公开的贡献。
+title: "[Feedback migration] "
 body:
   - type: markdown
     attributes:
       value: |
-        支持列表标题/链接/日期，以及详情正文/表格/图片/附件问题。
-        将反馈 JSON 粘贴到下面；格式和命令见 [问题反馈指南](https://github.com/marioypolo-ui/web-extraction-capabilities/blob/main/docs/problem-feedback.md)。
-        提交前在本地运行 `feedback:validate`，按返回的 problemKey 搜索已有问题；已有问题请补充样本，不要重复建单。
-        此仓库公开。不要上传账号、Cookie、token、浏览器状态、个人信息或未脱敏文件。
-  - type: textarea
-    id: feedback
-    attributes:
-      label: Feedback JSON
-      description: 粘贴通过 feedback:validate 的完整 JSON。HTML/JSON 样本只作为数据解析。
-      render: json
-    validations:
-      required: true
+        此入口不再收集网页正文、Feedback JSON、访问清单、日志或故障样本。
+        请由应用维护 agent 在本地定位、修复和验证，再按[贡献指南](https://github.com/marioypolo-ui/web-extraction-capabilities/blob/main/docs/capability-authoring.md)准备可复用成果。
+        正常调用或出现失败均不需要在这里建单。站点、网络、账号和业务配置问题由应用处理。
+        网站名称、栏目及其组合也可能暴露业务关系；只有经内容审查且明确获准公开的材料才能提交。
+        已有 Issue、评论和证据保留原状；迁移不代表原故障修复或应用已经升级。
   - type: checkboxes
-    id: sanitized
+    id: migration
     attributes:
-      label: Sanitized checks
+      label: 迁移确认
       options:
-        - label: 样本是合成内容或已脱敏的公开页面，未包含凭据、浏览器状态或个人信息。
+        - label: 我理解未修复报告应留在本地，本入口不会安排中央代修；我不会在标题或评论中粘贴业务数据。
           required: true

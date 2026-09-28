@@ -52,6 +52,8 @@
   ],
   "scripts": {
     "test": "node --test",
+    "test:contribution-isolation": "node scripts/contribution-isolation-acceptance.mjs",
+    "schema:validate": "node scripts/validate-contribution-schemas.mjs",
     "validate": "node bin/web-extract.mjs validate",
     "bundle": "node bin/web-extract.mjs bundle --output dist/bundle",
     "audit:sensitive": "node scripts/check-sensitive.mjs",

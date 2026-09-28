@@ -116,6 +116,10 @@ function safeStrings(value, base) {
   return true;
 }
 
+// Shared strict data checks; these do not grant publication permission.
+export { plainJson as isBoundedPlainJson, publicUrl as isPublicUrlWithoutCredentials,
+  safeStrings as hasSafePublicStrings };
+
 function objectFields(value, allowed, required, label, errors) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) { errors.push(`${label} must be an object.`); return false; }
   if (Object.keys(value).some((key) => !allowed.includes(key))) errors.push(`${label} contains an unsupported field.`);
@@ -127,12 +131,12 @@ function nonempty(value, maximum) {
   return typeof value === 'string' && value.length <= maximum && Boolean(value.trim());
 }
 
-function pathMapping(value) {
+export function pathMapping(value) {
   return nonempty(value, 200) && value.split('.').every((part) =>
     /^(?:[A-Za-z_$][\w$]*|\d+)$/.test(part) && !['__proto__', 'prototype', 'constructor'].includes(part));
 }
 
-function selector(value) {
+export function selector(value) {
   if (!nonempty(value, 500)) return false;
   const compound = /^(?:[A-Za-z][\w-]*)?(?:(?:[.#][\w-]+)|(?:\[\s*[A-Za-z_][\w:-]*\s*(?:=\s*(?:"[^"]*"|'[^']*'|[\w:/.#-]+)\s*)?\]))*/;
   let remaining = value.trim();

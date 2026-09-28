@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marioypolo-ui/web-extraction-capabilities/schemas/contribution-publication.schema.json",
+  "title": "Contribution integration and publication observations",
+  "description": "Shapes only. Imported JSON is not evidence of validation, merge, release or adoption. Query requires locally verified evidence and fixed-origin public GitHub observations.",
+  "$defs": {
+    "record": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "contributionKey": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "packSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "verificationDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "contributionKey",
+        "packSha256",
+        "eventId",
+        "verificationDigest"
+      ],
+      "additionalProperties": false
+    },
+    "publication": {
+      "type": "object",
+      "properties": {
+        "publicationVersion": {
+          "const": 1
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "mergeStatus": {
+          "enum": [
+            "unverified",
+            "pending",
+            "closed-unmerged",
+            "merged"
+          ]
+        },
+        "releaseStatus": {
+          "enum": [
+            "unverified",
+            "not-applicable",
+            "not-requested",
+            "published"
+          ]
+        },
+        "reusable": {
+          "const": false
+        },
+        "adopted": {
+          "const": false
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+          }
+        },
+        "pullRequestNumber": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mergeCommit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "releaseCommit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "releaseTag": {
+          "type": "string",
+          "pattern": "^v\\d+\\.\\d+\\.\\d+$"
+        }
+      },
+      "required": [
+        "publicationVersion",
+        "ok",
+        "mergeStatus",
+        "releaseStatus",
+        "reusable",
+        "adopted",
+        "reasons"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mergeStatus": {
+                "const": "merged"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "mergeCommit",
+              "pullRequestNumber"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "releaseStatus": {
+                "const": "published"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "releaseCommit",
+              "releaseTag",
+              "mergeCommit"
+            ],
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "mergeStatus": {
+                "const": "merged"
+              },
+              "reasons": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/publication"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "record": {
+          "$ref": "#/$defs/record"
+        }
+      },
+      "required": [
+        "ok",
+        "record"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+          }
+        }
+      },
+      "required": [
+        "ok",
+        "reasons"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

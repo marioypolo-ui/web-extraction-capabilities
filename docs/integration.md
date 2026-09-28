@@ -136,4 +136,6 @@ Bundle 的 `bundle-manifest.json` 包含 `bundleFormatVersion`、`catalogSha256`
 
 ## 7. 业务层职责
 
+应用已修复能力的回流接口、隐私审查与状态迁移见[消费方贡献交接清单](consumer-contribution-handoff.md)。
+
 调用应用负责关键词、日期范围、去重、持久化、告警、定时运行、代理策略和凭据生命周期。中央库的 `publishedAt` 可以为空，应用不得仅因日期不可信就假设记录不存在。

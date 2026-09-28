@@ -43,7 +43,9 @@ export async function createBundleRuntime({
     bundleFormatVersion: manifest.bundleFormatVersion,
     catalogSha256: manifest.catalogSha256,
     bundleDir: absoluteBundleDir,
-    ...Object.fromEntries(['extractDetail', 'validateProblemReport', 'reproduceProblem']
+    ...(runtimeModule.CONTRIBUTION_PROTOCOL ? { contributionProtocol: runtimeModule.CONTRIBUTION_PROTOCOL } : {}),
+    ...Object.fromEntries(['extractDetail', 'validateProblemReport', 'reproduceProblem',
+      'classifyProblem', 'validateContribution', 'validateContributionContract', 'verifyContribution']
       .filter((api) => typeof runtimeModule[api] === 'function')
       .map((api) => [api, (...args) => runtimeModule[api](...args)])),
     ...Object.fromEntries(REQUIRED_APIS.map((api) => [api, (...args) => runtimeModule[api](...args)]))

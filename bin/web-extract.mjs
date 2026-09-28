@@ -53,6 +53,57 @@ async function main() {
   const [command, ...rest] = process.argv.slice(2);
   const options = parseArgs(rest);
 
+  if (command === 'contribution:protocol') {
+    const { CONTRIBUTION_PROTOCOL } = await import('../src/contribution-contract.mjs');
+    return CONTRIBUTION_PROTOCOL;
+  }
+  if (command === 'contribution:validate') {
+    const { validateContribution } = await import('../src/contribution-validation.mjs');
+    const result = await validateContribution({ contributionDir: options.contribution,
+      publicationReview: options.publicationReview ? await readProblemReport(options.publicationReview) : undefined });
+    if (!result.ok) process.exitCode = 1;
+    return result;
+  }
+  if (command === 'contribution:verify') {
+    const { verifyContribution } = await import('../src/contribution-verification.mjs');
+    const result = await verifyContribution({ contributionDir: options.contribution, image: options.image,
+      publicationReview: options.publicationReview ? await readProblemReport(options.publicationReview) : undefined,
+      baseline: { bundleDir: options.baseline, bundleSha256: options.baselineSha256,
+        manifestSha256: options.baselineManifestSha256 } });
+    if (!result.ok) process.exitCode = 1;
+    return result;
+  }
+  if (command === 'contribution:receive') {
+    const { receiveContribution } = await import('../src/contribution-intake.mjs');
+    const result = await receiveContribution({ storeDir: options.store, contributionDir: options.contribution,
+      image: options.image, publicationReview: options.publicationReview ? await readProblemReport(options.publicationReview) : undefined,
+      baseline: { bundleDir: options.baseline, bundleSha256: options.baselineSha256,
+        manifestSha256: options.baselineManifestSha256 } });
+    if (!result.ok) process.exitCode = 1;
+    return result;
+  }
+  if (command === 'contribution:status') {
+    const { getContributionStatus } = await import('../src/contribution-intake.mjs');
+    const result = await getContributionStatus({ storeDir: options.store, contributionKey: options.key });
+    if (!result.ok) process.exitCode = 1;
+    return result;
+  }
+  if (command === 'contribution:integration-record' || command === 'contribution:publication') {
+    const { prepareContributionIntegration, getContributionPublicationStatus } = await import('../src/contribution-publication.mjs');
+    const input = { storeDir: options.store, contributionKey: options.key, eventId: options.event };
+    const result = command === 'contribution:integration-record' ? await prepareContributionIntegration(input)
+      : await getContributionPublicationStatus({ ...input,
+        pullRequestNumber: typeof options.pullRequest === 'string' && /^\d+$/.test(options.pullRequest) ? Number(options.pullRequest) : NaN,
+        releaseTag: options.release });
+    if (!result.ok) process.exitCode = 1;
+    return result;
+  }
+
+  if (command === 'feedback:classify') {
+    const { classifyProblem } = await import('../src/problem-classification.mjs');
+    return classifyProblem(await readProblemReport(options.report));
+  }
+
   if (command === 'feedback:validate' || command === 'feedback:reproduce') {
     const { validateProblemReport, reproduceProblem } = await import('../src/problem-feedback.mjs');
     const report = await readProblemReport(options.report);
