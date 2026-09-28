@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { buildBundle, packContribution, verifyContribution } from '../src/index.mjs';
+import { LIBRARY_VERSION } from '../src/result.mjs';
 
 async function pack(modern = true, baseVersion = '0.1.0') {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'central-verifier-'));
@@ -12,7 +13,7 @@ async function pack(modern = true, baseVersion = '0.1.0') {
   await fs.cp(new URL('../examples/capability-contribution/', import.meta.url), sourceDir, { recursive: true });
   if (modern) await fs.writeFile(path.join(sourceDir, 'contribution.json'), JSON.stringify({
     schemaVersion: 1, changeType: 'new-capability',
-    base: { capabilityId: 'static-html-list', capabilityVersion: baseVersion, libraryVersion: '0.2.0' },
+    base: { capabilityId: 'static-html-list', capabilityVersion: baseVersion, libraryVersion: LIBRARY_VERSION },
     targetType: 'static-html', appliesTo: ['Synthetic cards'], notAppliesTo: ['Login'],
     conditions: { network: 'offline', governmentDirect: true, login: false, human: false }, dependencies: [],
     entryPoint: { file: 'adapter.mjs', export: 'extractExampleCards', signature: 'input-v1' },

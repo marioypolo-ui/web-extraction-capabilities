@@ -6,7 +6,7 @@
 
 普通使用与失败不自动上传数据。报告留在应用本地，优先贡献合成或最小脱敏样本；真实网站、栏目清单、来源身份也需明确公开授权。`sanitized:true`、网址公开、校验通过或文件哈希均不代表具备公开许可。审查必须在发出内容之前完成，GitHub 事后检查无法阻止首次泄露。
 
-当前源码新增的贡献接口尚未发布，固定旧 Release 的应用先查询候选版本，不猜测接口：
+贡献接口从 v0.3.0 提供，固定旧 Release 的应用先查询候选版本，不猜测接口：
 
 ```powershell
 node bin/web-extract.mjs contribution:protocol
@@ -82,12 +82,12 @@ node bin/web-extract.mjs contribution:pack --source examples/website-reference-c
 ## 测试要求
 
 测试必须证明正常提取和至少一个失败路径。API 失败、0 记录、登录、缺浏览器依赖或人工验证不得静默。fixture 只能是合成内容或已脱敏的公开页面。
-# Independent verification entrypoint (unreleased source)
+# Independent verification entrypoint (v0.3.0)
 
 `verifyContribution({ contributionDir, publicationReview, baseline, image })` and
 `contribution:verify` now connect the static pack checks to isolated replay. This
-source implementation has passed an initial Linux-container end-to-end run
-(see [acceptance evidence](contribution-isolation-acceptance.md)), but is not part of a newly published Release.
+implementation has passed Linux-container end-to-end acceptance
+(see [acceptance evidence](contribution-isolation-acceptance.md)). Use a verified fixed v0.3.0 or later Bundle; old Releases do not provide these APIs.
 
 The trusted maintenance caller supplies `baseline.bundleDir`, `baseline.bundleSha256`
 and `baseline.manifestSha256`. The last hash covers the exact bytes of

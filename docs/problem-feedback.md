@@ -1,6 +1,6 @@
 # 应用本地诊断与贡献迁移
 
-本页对应当前源码的迁移行为；尚未发布的新接口不能假定已存在于固定 v0.2.0 Bundle。v0.2.0 的离线报告格式、`validateProblemReport`、`reproduceProblem` 和对应 CLI 保持兼容，但“公开故障报告后由中央代修”的默认流程退役。
+本页对应 v0.3.0 的迁移行为；新接口不能假定已存在于固定 v0.2.0 Bundle。v0.2.0 的离线报告格式、`validateProblemReport`、`reproduceProblem` 和对应 CLI 保持兼容，但“公开故障报告后由中央代修”的默认流程退役。
 
 ## 责任与本地流程
 

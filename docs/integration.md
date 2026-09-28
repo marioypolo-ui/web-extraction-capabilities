@@ -97,7 +97,7 @@ await extract({
 
 ```powershell
 node bin/web-extract.mjs bundle --output dist/bundle
-node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.2.0
+node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expected-version 0.3.0
 ```
 
 应用复制整个目录并保存 `bundle-manifest.json`。每个版本使用独立且不可变的目录；运行时从应用自己的 vendor 目录导入，不引用兄弟目录，不自动拉取 main。
@@ -106,8 +106,8 @@ node dist/bundle/bin/web-extract.mjs bundle:validate --bundle dist/bundle --expe
 import { createBundleRuntime } from './web-extraction-capabilities/src/index.mjs';
 
 const candidate = await createBundleRuntime({
-  bundleDir: 'vendor/web-extraction-capabilities/0.2.0',
-  expectedVersion: '0.2.0'
+  bundleDir: 'vendor/web-extraction-capabilities/0.3.0',
+  expectedVersion: '0.3.0'
 });
 ```
 

@@ -7,7 +7,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { runIsolatedNode } from '../src/contribution-isolation.mjs';
-import { packContribution, verifyContribution, receiveContribution, getContributionStatus } from '../src/index.mjs';
+import { packContribution, verifyContribution, receiveContribution, getContributionStatus, prepareContributionIntegration } from '../src/index.mjs';
 import { inspectContributionTree } from '../src/contribution-validation.mjs';
 
 const options = {};
@@ -114,7 +114,14 @@ process.stdout.write(JSON.stringify({readable,hostRead,mountWrite,rootWrite,netw
   const status = await getContributionStatus({ storeDir: intake.storeDir, contributionKey: first.contributionKey });
   assert.equal(status.events.length, 1); assert.equal(status.reusable, false);
   checks.push('verified-intake-idempotent-not-adopted');
-  console.log(JSON.stringify({ ok: true, status: 'passed', checks }));
+  // This maintained synthetic example is already public. Export only its
+  // controller-generated hash binding and sanitized event, never source bytes.
+  const integration = await prepareContributionIntegration({ storeDir: intake.storeDir,
+    contributionKey: first.contributionKey, eventId: first.eventId });
+  assert.equal(integration.ok, true);
+  const eventBytes = await fs.readFile(path.join(intake.storeDir, first.contributionKey, `${first.eventId}.json`), 'utf8');
+  console.log(JSON.stringify({ ok: true, status: 'passed', checks,
+    publicationEvidence: { record: integration.record, event: JSON.parse(eventBytes) } }));
 } catch (error) {
   const reason = /^[A-Z][A-Z0-9_]{0,79}$/.test(error?.message || '') ? error.message : 'ISOLATION_ACCEPTANCE_FAILED';
   console.log(JSON.stringify({ ok: false, status: error.blocked ? 'blocked' : 'failed', reason, completedChecks: checks }));
