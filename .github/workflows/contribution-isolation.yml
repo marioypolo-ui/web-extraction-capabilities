@@ -1,8 +1,7 @@
 name: Contribution isolation acceptance
 
 on:
-  push:
-    branches: [codex/contribution-acceptance]
+  workflow_call:
   workflow_dispatch:
     inputs:
       node_image_digest:

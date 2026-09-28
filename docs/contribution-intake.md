@@ -74,4 +74,4 @@ node bin/web-extract.mjs contribution:status --store <maintenance-local-director
 `INTAKE_BUSY` 表示另一读写操作持有锁，稍后重试。崩溃留下的锁需维护方确认没有运行中的
 操作后处理；程序不会擅自删锁或清理历史。证据损坏返回明确拒绝，不跳过坏记录。
 历史报告继续使用原离线校验/复现接口；未修复的应用工单不进入中央代修。
-新接口尚未发布，真实容器正向验收及远程状态关联尚未完成；现有 v0.2.0 消费者不能据此宣称已可升级。
+新接口尚未发布；真实容器正向验收已有[运行证据](contribution-isolation-acceptance.md)，真实远程合并/发布关联仍待实际集成时核验。现有 v0.2.0 消费者不能据此宣称已可升级。

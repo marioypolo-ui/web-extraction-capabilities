@@ -86,8 +86,8 @@ node bin/web-extract.mjs contribution:pack --source examples/website-reference-c
 
 `verifyContribution({ contributionDir, publicationReview, baseline, image })` and
 `contribution:verify` now connect the static pack checks to isolated replay. This
-source implementation has not yet passed positive Linux-container end-to-end
-acceptance and is not part of a newly published Release.
+source implementation has passed an initial Linux-container end-to-end run
+(see [acceptance evidence](contribution-isolation-acceptance.md)), but is not part of a newly published Release.
 
 The trusted maintenance caller supplies `baseline.bundleDir`, `baseline.bundleSha256`
 and `baseline.manifestSha256`. The last hash covers the exact bytes of
@@ -124,4 +124,4 @@ separate decisions. A non-success receipt makes the CLI exit nonzero.
 Temporary snapshots currently remain on the maintenance machine for local
 diagnosis; they are not uploaded. Do not publish these directories or use them
 as public Actions artifacts. Real container denial probes and positive
-new-capability/fix/reference integration tests remain release blockers.
+new-capability/fix/reference tests must pass for the exact commit being released.

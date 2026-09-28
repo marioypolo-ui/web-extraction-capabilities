@@ -24,3 +24,12 @@ test('manual isolation workflow separates pinned public acquisition from credent
   assert.doesNotMatch(text, /pull_request_target|secrets\.|GH_TOKEN|contents: write|id-token: write|upload-artifact|continue-on-error/);
   assert.doesNotMatch(text, /\$\{\{.*(?:issue\.body|head\.ref|head\.sha)/);
 });
+
+test('stable publication depends on the same-commit isolated acceptance job', async () => {
+  const isolation = await fs.readFile(new URL('../.github/workflows/contribution-isolation.yml', import.meta.url), 'utf8');
+  const release = await fs.readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8');
+  assert.match(isolation, /workflow_call:/);
+  assert.match(release, /isolation-acceptance:\s+permissions:\s+contents: read\s+uses: \.\/\.github\/workflows\/contribution-isolation\.yml/);
+  assert.match(release, /release:\s+needs: isolation-acceptance/);
+  assert.doesNotMatch(release, /continue-on-error|if:.*always\(/);
+});

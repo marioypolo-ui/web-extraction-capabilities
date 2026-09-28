@@ -1,4 +1,4 @@
-# 真实隔离验收入口（待运行）
+# 真实隔离验收入口
 
 `npm run test:contribution-isolation` 是独立的环境验收命令，不会因普通单元测试通过而自动算通过。
 缺少固定输入、Docker 或 Linux 镜像时返回 `blocked` 并以非零退出；没有 skip 或宿主执行回退。
@@ -26,9 +26,16 @@ npm run test:contribution-isolation -- --image <pinned-local-linux-image-id> --b
 ## 可用后端的准备
 
 本地环境目前没有 Docker/Linux 后端，用户也没有可提供的环境。
-仓库已准备 `.github/workflows/contribution-isolation.yml`：仅手动触发，使用临时 Ubuntu runner，
+仓库的 `.github/workflows/contribution-isolation.yml` 支持手动触发与同提交工作流复用，使用临时 Ubuntu runner，
 只读仓库权限，checkout 不持久保存凭据，输入固定官方 Node 镜像摘要及 v0.2.0 基线三项校验值。
 先下载并校验固定公开依赖，再运行凭据隔离的容器测试；不合并代码或发布 Release，不上传样本产物。
 
-该工作流尚未推送、触发或验证成功。提前推送测试分支并执行远程验收需核对对应授权。
-不要把工作流存在、缺环境时正确拒绝、普通 npm test 通过，当成真实隔离验收已经通过。
+2026-09-28 已在提交 `93cd9033cddb1bcadc7def9494ce0e9de2fb3076` 完成
+[首次真实隔离验收](https://github.com/marioypolo-ui/web-extraction-capabilities/actions/runs/36404779188)，
+上述九项固定检查全部通过，包含故意破坏测试/样本后拒收及恢复后通过。
+基线使用官方 v0.2.0 资产，归档 SHA256 为 `9263a1b87a1563f1652053b8eb333e8f0c1afa7216b5ad56efc3721cceb036c6`；
+镜像使用 Docker 官方 Node 22 bookworm slim Linux amd64，摘要固定在工作流中。
+
+CI 和 Stable release 复用同一验收工作流；发布任务必须等待同一提交的隔离验收成功。
+新改动仍需对应提交的实际运行证据，不能将首次运行结果套用到后续改动。
+这些变更仍在验收分支，尚未合并或发布；不代表消费应用已经更新。

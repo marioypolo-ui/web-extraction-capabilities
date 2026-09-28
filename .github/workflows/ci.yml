@@ -9,6 +9,10 @@ permissions:
   contents: read
 
 jobs:
+  isolation-acceptance:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/contribution-isolation.yml
   verify:
     runs-on: ubuntu-latest
     steps:

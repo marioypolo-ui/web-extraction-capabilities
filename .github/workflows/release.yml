@@ -9,7 +9,12 @@ permissions:
   contents: write
 
 jobs:
+  isolation-acceptance:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/contribution-isolation.yml
   release:
+    needs: isolation-acceptance
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
