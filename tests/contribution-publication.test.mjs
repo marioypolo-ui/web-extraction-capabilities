@@ -17,6 +17,16 @@ const evidence = () => ({ binding, pullRequest, recordAtMerge: record, recordAtR
   releaseTag: 'v0.3.0', release: { tag_name: 'v0.3.0', draft: false, prerelease: false, published_at: '2026-09-27T00:00:00Z' },
   comparison: { status: 'ahead', base_commit: { sha: pullRequest.merge_commit_sha } } });
 
+test('integrated synthetic example matches its real isolated intake binding', async () => {
+  const accepted = JSON.parse(await fs.readFile(new URL('../contributions/accepted/1e413bfd45c98a2f1c73cd12bb5397a04140abb91276532c4c370dafdfc11f14.json', import.meta.url), 'utf8'));
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'central-integrated-example-'));
+  await packContribution({ sourceDir: fileURLToPath(new URL('../examples/verified-capability-contribution/', import.meta.url)), outputDir: path.join(temp, 'pack') });
+  const manifest = JSON.parse(await fs.readFile(path.join(temp, 'pack', 'contribution-manifest.json'), 'utf8'));
+  assert.equal(manifest.packSha256, accepted.packSha256);
+  assert.equal(accepted.schemaVersion, 1);
+  for (const key of ['contributionKey', 'packSha256', 'eventId', 'verificationDigest']) assert.match(accepted[key], /^[a-f0-9]{64}$/);
+});
+
 // These exercise the pure evidence rules only. They do not claim a GitHub fetch,
 // actual merge, real isolated acceptance, or Release publication occurred.
 test('publication rules require exact contribution binding and release ancestry', () => {

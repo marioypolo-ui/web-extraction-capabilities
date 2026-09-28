@@ -15,7 +15,7 @@ node bin/web-extract.mjs contribution:validate --contribution dist/contribution
 
 `contribution:validate` 重新核对实际文件、哈希、隐私和声明，不信任包内 `passed`、`acceptance` 或 `disclosure`。`ready-for-independent-validation` 只表示静态检查通过，`verifiedContribution` 仍为 `false`；不得据此修改能力目录为 supported/reusable。缺少新契约的历史包返回 `needs-evidence`，补证据后重新验证。拒收退出码为 1，静态检查通过为 0；必须同时读取状态。
 
-本地打包默认 `local-only`。API 的 `publicationReview` 是针对具体文件内容的人工审查/授权声明，不是中央测试凭证，也不能证明完整脱敏；内容变化后旧审查失效。新独立测试与接收流程尚在实现，当前静态通过不构成完整验收。
+本地打包默认 `local-only`。API 的 `publicationReview` 是针对具体文件内容的人工审查/授权声明，不是中央测试凭证，也不能证明完整脱敏；内容变化后旧审查失效。静态通过不构成完整验收，仍须执行独立隔离测试与接收流程。
 
 ## 目录
 
